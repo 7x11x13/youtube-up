@@ -100,6 +100,8 @@ class YTUploaderSession:
                     scotty_resource_id, metadata, data
                 )
         progress_callback("create_video", self.progress_steps["create_video"])
+
+        # set thumbnail
         if metadata.thumbnail is not None:
             url = self._get_upload_url_thumbnail()
             data.thumbnail_scotty_id = self._upload_file(
@@ -110,6 +112,22 @@ class YTUploaderSession:
                 "upload_thumbnail",
             )
             data.thumbnail_format = self._get_thumbnail_format(metadata.thumbnail)
+
+        # playlists
+        if metadata.playlists:
+            playlists = self._get_creator_playlists(data)
+            if metadata.playlist_ids is None:
+                metadata.playlist_ids = []
+            for playlist in metadata.playlists:
+                exists = playlist.title in playlists
+                if (playlist.create_if_title_exists and exists) or (
+                    playlist.create_if_title_doesnt_exist and not exists
+                ):
+                    playlist_id = self._create_playlist(playlist, data)
+                    metadata.playlist_ids.append(playlist_id)
+                elif exists:
+                    metadata.playlist_ids.append(playlists[playlist.title])
+
         self._update_metadata(metadata, data)
         progress_callback("finish", self.progress_steps["finish"])
 
@@ -232,6 +250,40 @@ class YTUploaderSession:
             "https://upload.youtube.com/upload/studiothumbnail", {}
         )
 
+    def _get_creator_playlists(self, data: YTUploaderVideoData) -> dict[str, str]:
+        params = {"key": data.innertube_api_key, "alt": "json"}
+        data = APIRequestListPlaylists.from_session_data(
+            data.channel_id,
+            self.session_token,
+        ).to_dict()
+        r = self.session.post(
+            "https://studio.youtube.com/youtubei/v1/creator/list_creator_playlists",
+            params=params,
+            json=data,
+        )
+        r.raise_for_status()
+        return {
+            playlist["title"]: playlist["playlistId"]
+            for playlist in r.json()["playlists"]
+        }
+
+    def _create_playlist(
+        self,
+        playlist: Playlist,
+        data: YTUploaderVideoData,
+    ) -> str:
+        params = {"key": data.innertube_api_key, "alt": "json"}
+        data = APIRequestCreatePlaylist.from_session_data(
+            data.channel_id, self.session_token, playlist
+        ).to_dict()
+        r = self.session.post(
+            "https://studio.youtube.com/youtubei/v1/playlist/create",
+            params=params,
+            json=data,
+        )
+        r.raise_for_status()
+        return r.json()["playlistId"]
+
     def _upload_file(
         self,
         upload_url: str,
@@ -314,6 +366,10 @@ if __name__ == "__main__":
         tags=["Music", "test tag lol"],
         allow_comments=False,
         thumbnail="test/thumb.jpg",
+        playlists=[
+            Playlist("hello playlist", "testing helloi", PrivacyEnum.UNLISTED),
+            Playlist("test pklaylist"),
+        ],
     )
     with tqdm.tqdm(total=100) as pbar:
 

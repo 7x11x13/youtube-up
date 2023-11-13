@@ -257,6 +257,13 @@ class APIUpdateMetadataThumbnail(UpdateMetadataBase):
     operation: str = "UPLOAD_CUSTOM_THUMBNAIL"
 
 
+@dataclass_json
+@dataclass(frozen=True)
+class APIUpdateMetadataPlaylists(UpdateMetadataBase):
+    addToPlaylistIds: list[str]
+    deleteFromPlaylistIds: list[str] = ()
+
+
 class PrivacyEnum(str, Enum):
     PRIVATE = "PRIVATE"
     UNLISTED = "UNLISTED"
@@ -316,6 +323,15 @@ MFKDict = {True: "MDE_MADE_FOR_KIDS_TYPE_MFK", False: "MDE_MADE_FOR_KIDS_TYPE_NO
 
 
 @dataclass(frozen=True)
+class Playlist:
+    title: str
+    description: str = ""
+    privacy: PrivacyEnum = PrivacyEnum.PUBLIC
+    create_if_title_exists: bool = False
+    create_if_title_doesnt_exist: bool = True
+
+
+@dataclass
 class Metadata:
     title: str
     description: str
@@ -323,6 +339,8 @@ class Metadata:
     made_for_kids: bool = False
     tags: list[str] = ()
     # optional metadata for update_metadata
+    playlist_ids: Optional[list[str]] = None
+    playlists: Optional[list[Playlist]] = None
     thumbnail: Optional[str] = None
     publish_to_feed: Optional[bool] = None
     category: Optional[CategoryEnum] = None
@@ -396,6 +414,66 @@ class APIRequestCreateVideo:
 
 @dataclass_json
 @dataclass(frozen=True)
+class APIRequestListPlaylistsMask:
+    playlistId: bool = True
+    title: bool = True
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIRequestListPlaylists:
+    channelId: str
+    context: APIContext
+    delegationContext: APIDelegationContext
+    mask: APIRequestListPlaylistsMask = APIRequestListPlaylistsMask()
+    memberVideoIds: list[str] = ()
+    pageSize: int = 500
+
+    @classmethod
+    def from_session_data(cls, channel_id: str, session_token: str):
+        return cls(
+            channel_id,
+            APIContext.from_session_data(channel_id, session_token),
+            APIDelegationContext(channel_id),
+        )
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIPlaylistCourseMetadata:
+    isCourse: bool = False
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIPlaylistPodcastMetadata:
+    isPodcast: bool = False
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIRequestCreatePlaylist:
+    context: APIContext
+    delegationContext: APIDelegationContext
+    title: str
+    description: str
+    privacyStatus: str
+    courseMetadata: APIPlaylistCourseMetadata = APIPlaylistCourseMetadata()
+    podcastMetadata: APIPlaylistPodcastMetadata = APIPlaylistPodcastMetadata()
+
+    @classmethod
+    def from_session_data(cls, channel_id: str, session_token: str, playlist: Playlist):
+        return cls(
+            APIContext.from_session_data(channel_id, session_token),
+            APIDelegationContext(channel_id),
+            playlist.title,
+            playlist.description,
+            playlist.privacy,
+        )
+
+
+@dataclass_json
+@dataclass(frozen=True)
 class APIRequestUpdateMetadata:
     context: APIContext
     delegationContext: APIDelegationContext
@@ -442,6 +520,9 @@ class APIRequestUpdateMetadata:
         default=None, metadata=config(exclude=lambda x: x is None)
     )
     videoStill: Optional[APIUpdateMetadataThumbnail] = field(
+        default=None, metadata=config(exclude=lambda x: x is None)
+    )
+    addToPlaylist: Optional[APIUpdateMetadataPlaylists] = field(
         default=None, metadata=config(exclude=lambda x: x is None)
     )
 
@@ -494,4 +575,5 @@ class APIRequestUpdateMetadata:
             APIUpdateMetadataThumbnail.from_metadata_args(
                 APIImage.from_metadata_args(thumbnail_scotty_id, thumbnail_format)
             ),
+            APIUpdateMetadataPlaylists.from_metadata_args(metadata.playlist_ids),
         )
