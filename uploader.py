@@ -15,6 +15,7 @@ from seleniumwire import webdriver
 from seleniumwire.utils import decode
 from tqdm.utils import CallbackIOWrapper
 
+from metadata import *
 from schema import *
 
 
