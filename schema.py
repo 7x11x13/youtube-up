@@ -379,6 +379,7 @@ class APIRequestUpdateMetadata:
     context: APIContext
     delegationContext: APIDelegationContext
     encryptedVideoId: str
+    # mandatory updates
     madeForKids: APIUpdateMetadataMadeForKids
     draftState: APIUpdateMetadataRemoveDraftState
     privacyState: APIUpdateMetadataPrivacy
@@ -465,17 +466,3 @@ class APIRequestUpdateMetadata:
                 metadata.publish_to_feed
             ),
         )
-
-
-if __name__ == "__main__":
-    x = Metadata(
-        "test title",
-        "test description",
-        PrivacyEnum.UNLISTED,
-        publish_to_feed=False,
-        allow_comments=False,
-    )
-    y = APIRequestUpdateMetadata.from_session_data(
-        "channel_id", "sessiontoken", "videoid", x
-    )
-    print(y.to_dict())

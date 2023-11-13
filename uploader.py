@@ -5,7 +5,7 @@ import re
 import time
 import uuid
 from hashlib import sha1
-from http.cookiejar import Cookie, MozillaCookieJar
+from http.cookiejar import Cookie, CookieJar, FileCookieJar, MozillaCookieJar
 
 import requests
 from seleniumwire import webdriver
@@ -14,18 +14,22 @@ from seleniumwire.utils import decode
 from schema import *
 
 
+class YTUploaderException(Exception):
+    pass
+
+
 class YTUploaderSession:
     innertube_api_key_regex = re.compile(r'"INNERTUBE_API_KEY":"([^"]*)"')
     channel_id_regex = re.compile(r"https://studio.youtube.com/channel/([^/]*)/*")
 
-    def __init__(self, cookies_txt_file: str):
+    def __init__(self, cookie_jar: FileCookieJar):
         self.channel_id: str = ""
         self.innertube_api_key: str = ""
         self.session_token: str = ""
         self.front_end_upload_id: str = ""
 
         # load cookies and init session
-        self.cookies = MozillaCookieJar(cookies_txt_file)
+        self.cookies = cookie_jar
         self.cookies.load(ignore_discard=True)
         self.session = requests.Session()
         for cookie in self.cookies:
@@ -38,6 +42,11 @@ class YTUploaderSession:
             "x-origin": "https://studio.youtube.com",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
         }
+
+    @classmethod
+    def from_cookies_txt(cls, cookies_txt_path: str):
+        cj = MozillaCookieJar(cookies_txt_path)
+        return cls(cj)
 
     def upload(self, file_path: str, metadata: Metadata):
         self._get_session_data()
@@ -65,7 +74,7 @@ class YTUploaderSession:
                 options.add_argument("--headless=new")
                 driver = webdriver.Chrome(options=options)
             except Exception:
-                raise Exception(
+                raise YTUploaderException(
                     "Could not launch Firefox or Chrome. Make sure geckodriver or chromedriver is installed"
                 )
 
@@ -78,7 +87,7 @@ class YTUploaderSession:
 
         if "studio.youtube.com/channel" not in driver.current_url:
             driver.quit()
-            raise Exception(
+            raise YTUploaderException(
                 "Could not log in to YouTube account. Try getting new cookies"
             )
 
@@ -126,7 +135,7 @@ class YTUploaderSession:
         r = self.session.get("https://youtube.com/upload")
 
         if "studio.youtube.com/channel" not in r.url:
-            raise Exception(
+            raise YTUploaderException(
                 "Could not log in to YouTube account. Try getting new cookies"
             )
 
@@ -225,12 +234,13 @@ class YTUploaderSession:
 
 
 if __name__ == "__main__":
-    uploader = YTUploaderSession("cookies.txt")
+    uploader = YTUploaderSession.from_cookies_txt("cookies.txt")
     file_path = "test.mp4"
     metadata = Metadata(
         "test title",
         "test description",
         PrivacyEnum.UNLISTED,
         tags=["Music", "test tag lol"],
+        allow_comments=False,
     )
     uploader.upload(file_path, metadata)
