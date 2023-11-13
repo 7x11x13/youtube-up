@@ -370,6 +370,7 @@ if __name__ == "__main__":
             Playlist("hello playlist", "testing helloi", PrivacyEnum.UNLISTED),
             Playlist("test pklaylist"),
         ],
+        scheduled_upload=datetime.datetime(2023, 12, 25, 0, 0, 0),
     )
     with tqdm.tqdm(total=100) as pbar:
 

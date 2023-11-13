@@ -180,7 +180,7 @@ class APIDate:
     year: int
 
     @classmethod
-    def from_date(cls, date: datetime.datetime):
+    def from_date(cls, date: Optional[datetime.datetime]):
         if date is None:
             return None
         else:
@@ -264,6 +264,54 @@ class APIUpdateMetadataPlaylists(UpdateMetadataBase):
     deleteFromPlaylistIds: list[str] = ()
 
 
+@dataclass_json
+@dataclass(frozen=True)
+class APIUpdateMetadataSchedule(UpdateMetadataBase):
+    timeSec: str
+    privacy: str = "PUBLIC"
+
+    @classmethod
+    def from_date(cls, date: Optional[datetime.datetime]):
+        if date is None:
+            return None
+        else:
+            return cls(str(round(date.timestamp())))
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIUpdateMetadataScheduledPublishing(UpdateMetadataBase):
+    set: APIUpdateMetadataSchedule
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIUpdateMetadataPremiere(UpdateMetadataBase):
+    scheduledStartTimeSec: str
+    operation: str = "MDE_PREMIERE_UPDATE_OPERATION_SCHEDULE"
+
+    @classmethod
+    def from_date(cls, date: Optional[datetime.datetime]):
+        if date is None:
+            return None
+        else:
+            return cls(str(round(date.timestamp())))
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIUpdateMetadataCountdown(UpdateMetadataBase):
+    seconds: str
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIUpdateMetadataPremiereIntro(UpdateMetadataBase):
+    countdownDuration: APIUpdateMetadataCountdown
+    theme: str
+    operation: str = "MDE_PREMIERE_INTRO_UPDATE_OPERATION_SET"
+
+
 class PrivacyEnum(str, Enum):
     PRIVATE = "PRIVATE"
     UNLISTED = "UNLISTED"
@@ -314,6 +362,32 @@ class ThumbnailFormatEnum(str, Enum):
     JPG = "CUSTOM_THUMBNAIL_IMAGE_FORMAT_JPEG"
 
 
+class PremiereDurationEnum(str, Enum):
+    ONE_MIN = "60"
+    TWO_MIN = "120"
+    THREE_MIN = "180"
+    FOUR_MIN = "240"
+    FIVE_MIN = "300"
+
+
+class PremiereThemeEnum(str, Enum):
+    CLASSIC = "VIDEO_PREMIERE_INTRO_THEME_DEFAULT"
+    ALTERNATIVE = "VIDEO_PREMIERE_INTRO_THEME_ALTERNATIVE"
+    AMBIENT = "VIDEO_PREMIERE_INTRO_THEME_AMBIENT"
+    BRIGHT = "VIDEO_PREMIERE_INTRO_THEME_BRIGHT"
+    CALM = "VIDEO_PREMIERE_INTRO_THEME_CALM"
+    CINEMATIC = "VIDEO_PREMIERE_INTRO_THEME_CINEMATIC"
+    CONTEMPORARY = "VIDEO_PREMIERE_INTRO_THEME_CONTEMPORARY"
+    DRAMATIC = "VIDEO_PREMIERE_INTRO_THEME_DRAMATIC"
+    FUNKY = "VIDEO_PREMIERE_INTRO_THEME_FUNKY"
+    GENTLE = "VIDEO_PREMIERE_INTRO_THEME_GENTLE"
+    HAPPY = "VIDEO_PREMIERE_INTRO_THEME_HAPPY"
+    INSPIRATIONAL = "VIDEO_PREMIERE_INTRO_THEME_INSPIRATIONAL"
+    KIDS = "VIDEO_PREMIERE_INTRO_THEME_KIDS"
+    SCI_FI = "VIDEO_PREMIERE_INTRO_THEME_SCI_FI"
+    SPORTS = "VIDEO_PREMIERE_INTRO_THEME_SPORTS"
+
+
 RacyDict = {
     True: "MDE_RACY_TYPE_RESTRICTED",
     False: "MDE_RACY_TYPE_NOT_RESTRICTED",
@@ -339,6 +413,9 @@ class Metadata:
     made_for_kids: bool = False
     tags: list[str] = ()
     # optional metadata for update_metadata
+    scheduled_upload: Optional[datetime.datetime] = None
+    premiere_countdown_duration: Optional[PremiereDurationEnum] = None
+    premiere_theme: Optional[PremiereThemeEnum] = None
     playlist_ids: Optional[list[str]] = None
     playlists: Optional[list[Playlist]] = None
     thumbnail: Optional[str] = None
@@ -525,6 +602,15 @@ class APIRequestUpdateMetadata:
     addToPlaylist: Optional[APIUpdateMetadataPlaylists] = field(
         default=None, metadata=config(exclude=lambda x: x is None)
     )
+    scheduledPublishing: Optional[APIUpdateMetadataScheduledPublishing] = field(
+        default=None, metadata=config(exclude=lambda x: x is None)
+    )
+    premiere: Optional[APIUpdateMetadataPremiere] = field(
+        default=None, metadata=config(exclude=lambda x: x is None)
+    )
+    premiereIntro: Optional[APIUpdateMetadataPremiereIntro] = field(
+        default=None, metadata=config(exclude=lambda x: x is None)
+    )
 
     @classmethod
     def from_session_data(
@@ -536,6 +622,20 @@ class APIRequestUpdateMetadata:
         thumbnail_scotty_id: Optional[str] = None,
         thumbnail_format: Optional[str] = None,
     ):
+        if (
+            metadata.premiere_countdown_duration is not None
+            and metadata.premiere_theme is not None
+        ):
+            # premiere, not scheduled upload
+            premier_upload_time = metadata.scheduled_upload
+            scheduled_upload_time = None
+            metadata.privacy = PrivacyEnum.PUBLIC
+        else:
+            # scheduled upload
+            premier_upload_time = None
+            scheduled_upload_time = metadata.scheduled_upload
+            metadata.privacy = PrivacyEnum.PRIVATE
+            
         return cls(
             APIContext.from_session_data(channel_id, session_token),
             APIDelegationContext(channel_id),
@@ -576,4 +676,12 @@ class APIRequestUpdateMetadata:
                 APIImage.from_metadata_args(thumbnail_scotty_id, thumbnail_format)
             ),
             APIUpdateMetadataPlaylists.from_metadata_args(metadata.playlist_ids),
+            APIUpdateMetadataScheduledPublishing.from_metadata_args(
+                APIUpdateMetadataSchedule.from_date(scheduled_upload_time)
+            ),
+            APIUpdateMetadataPremiere.from_date(premier_upload_time),
+            APIUpdateMetadataPremiereIntro.from_metadata_args(
+                APIUpdateMetadataCountdown.from_metadata_args(metadata.premiere_countdown_duration),
+                metadata.premiere_theme
+            ),
         )
