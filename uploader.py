@@ -1,15 +1,19 @@
 import copy
 import json
 import math
+import os
 import re
 import time
 import uuid
 from hashlib import sha1
-from http.cookiejar import Cookie, CookieJar, FileCookieJar, MozillaCookieJar
+from http.cookiejar import Cookie, FileCookieJar, MozillaCookieJar
+from typing import Callable
 
 import requests
+import tqdm
 from seleniumwire import webdriver
 from seleniumwire.utils import decode
+from tqdm.utils import CallbackIOWrapper
 
 from schema import *
 
@@ -18,15 +22,32 @@ class YTUploaderException(Exception):
     pass
 
 
+@dataclass
+class YTUploaderVideoData:
+    channel_id: str = None
+    innertube_api_key: str = None
+    front_end_upload_id: str = None
+    encrypted_video_id: str = None
+    thumbnail_scotty_id: str = None
+    thumbnail_format: str = None
+
+
 class YTUploaderSession:
     innertube_api_key_regex = re.compile(r'"INNERTUBE_API_KEY":"([^"]*)"')
     channel_id_regex = re.compile(r"https://studio.youtube.com/channel/([^/]*)/*")
+    progress_steps = {
+        "start": 0,
+        "get_session_data": 10,
+        "get_upload_url": 20,
+        "upload_video": 70,
+        "get_session_token": 80,
+        "create_video": 90,
+        "upload_thumbnail": 95,
+        "finish": 100,
+    }
 
     def __init__(self, cookie_jar: FileCookieJar):
-        self.channel_id: str = ""
-        self.innertube_api_key: str = ""
         self.session_token: str = ""
-        self.front_end_upload_id: str = ""
 
         # load cookies and init session
         self.cookies = cookie_jar
@@ -48,18 +69,59 @@ class YTUploaderSession:
         cj = MozillaCookieJar(cookies_txt_path)
         return cls(cj)
 
-    def upload(self, file_path: str, metadata: Metadata):
-        self._get_session_data()
-        url = self._get_upload_url()
-        scotty_resource_id = self._upload_file(url, file_path)
+    def upload(
+        self,
+        file_path: str,
+        metadata: Metadata,
+        progress_callback: Callable[[str, float], None] = lambda step, percent: None,
+    ):
+        progress_callback("start", self.progress_steps["start"])
+        data = YTUploaderVideoData()
+        self._get_session_data(data)
+        progress_callback("get_session_data", self.progress_steps["get_session_data"])
+        url = self._get_video_upload_url(data)
+        progress_callback("get_upload_url", self.progress_steps["get_upload_url"])
+        scotty_resource_id = self._upload_file(
+            url, file_path, progress_callback, "get_upload_url", "upload_video"
+        )
+        progress_callback("upload_video", self.progress_steps["upload_video"])
         try:
-            encrypted_video_id = self._create_video(scotty_resource_id, metadata)
+            data.encrypted_video_id = self._create_video(
+                scotty_resource_id, metadata, data
+            )
         except requests.HTTPError as ex:
             if ex.response.status_code == 400:
                 # could be bad session token, try to get new one
                 self._get_session_token()
-                encrypted_video_id = self._create_video(scotty_resource_id, metadata)
-        self._update_metadata(encrypted_video_id, metadata)
+                progress_callback(
+                    "get_session_token", self.progress_steps["get_session_token"]
+                )
+                data.encrypted_video_id = self._create_video(
+                    scotty_resource_id, metadata, data
+                )
+        progress_callback("create_video", self.progress_steps["create_video"])
+        if metadata.thumbnail is not None:
+            url = self._get_upload_url_thumbnail()
+            data.thumbnail_scotty_id = self._upload_file(
+                url,
+                metadata.thumbnail,
+                progress_callback,
+                "create_video",
+                "upload_thumbnail",
+            )
+            data.thumbnail_format = self._get_thumbnail_format(metadata.thumbnail)
+        self._update_metadata(metadata, data)
+        progress_callback("finish", self.progress_steps["finish"])
+
+    def _get_thumbnail_format(self, filename: str) -> ThumbnailFormatEnum:
+        ext = filename.split(".")[-1]
+        if ext in ("jpg", "jpeg", "jfif", "pjpeg", "pjp"):
+            return ThumbnailFormatEnum.JPG
+        if ext in ("png",):
+            return ThumbnailFormatEnum.PNG
+        raise YTUploaderException(
+            f"Unknown format for thumbnail with extension '{ext}'. Only JPEG and PNG allowed"
+        )
 
     def _get_session_token(self):
         try:
@@ -131,7 +193,7 @@ class YTUploaderSession:
         hash = sha1(msg.encode("utf-8")).hexdigest()
         return f"{timestamp}_{hash}"
 
-    def _get_session_data(self):
+    def _get_session_data(self, data: YTUploaderVideoData):
         r = self.session.get("https://youtube.com/upload")
 
         if "studio.youtube.com/channel" not in r.url:
@@ -139,78 +201,83 @@ class YTUploaderSession:
                 "Could not log in to YouTube account. Try getting new cookies"
             )
 
-        self.channel_id = self.channel_id_regex.match(r.url).group(1)
-        self.innertube_api_key = self.innertube_api_key_regex.search(r.text).group(1)
+        data.channel_id = self.channel_id_regex.match(r.url).group(1)
+        data.innertube_api_key = self.innertube_api_key_regex.search(r.text).group(1)
 
-    def _get_creator_channels(self) -> list[str]:
-        params = {"key": self.innertube_api_key, "alt": "json"}
-        data = {
-            "channelIds": [self.channel_id],
-            "context": APIContext.from_session_data(
-                self.channel_id, self.session_token
-            ).to_dict(),
-        }
-        r = self.session.post(
-            "https://studio.youtube.com/youtubei/v1/creator/get_creator_channels",
-            params=params,
-            json=data,
-        )
-        r.raise_for_status()
-        return r.json()
-
-    def _get_upload_url(self) -> str:
+    def _get_upload_url(self, api_url: str, data: dict) -> str:
         params = {"authuser": 0}
         headers = {
             "x-goog-upload-command": "start",
             "x-goog-upload-protocol": "resumable",
         }
-        self.front_end_upload_id = f"innertube_studio:{self._generateUUID()}:0"
         r = self.session.post(
-            "https://upload.youtube.com/upload/studio",
+            api_url,
             headers=headers,
             params=params,
-            data=f'{{"frontendUploadId":"{self.front_end_upload_id}"}}',
+            json=data,
         )
         r.raise_for_status()
         upload_url = r.headers["x-goog-upload-url"]
         return upload_url
 
-    def _upload_file(self, upload_url: str, file_path: str):
-        params = {"authuser": 0}
+    def _get_video_upload_url(self, data: YTUploaderVideoData) -> str:
+        data.front_end_upload_id = f"innertube_studio:{self._generateUUID()}:0"
+        return self._get_upload_url(
+            "https://upload.youtube.com/upload/studio",
+            {"frontendUploadId": data.front_end_upload_id},
+        )
+
+    def _get_upload_url_thumbnail(self) -> str:
+        return self._get_upload_url(
+            "https://upload.youtube.com/upload/studiothumbnail", {}
+        )
+
+    def _upload_file(
+        self,
+        upload_url: str,
+        file_path: str,
+        progress_callback: Callable[[str, float], None],
+        prev_progress_step: str,
+        cur_progress_step: str,
+    ):
         headers = {
             "x-goog-upload-command": "upload, finalize",
             "x-goog-upload-offset": "0",
         }
+
         with open(file_path, "rb") as f:
-            r = self.session.post(upload_url, headers=headers, params=params, data=f)
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(0)
+            bytes_sent = 0
+
+            def upload_callback(bytes: int):
+                nonlocal bytes_sent
+                bytes_sent += bytes
+                start_prog = self.progress_steps[prev_progress_step]
+                end_prog = self.progress_steps[cur_progress_step]
+                cur_prog = start_prog + (end_prog - start_prog) * (bytes_sent / size)
+                cur_prog = round(cur_prog, 1)
+                progress_callback(cur_progress_step, cur_prog)
+
+            wrapped_file = CallbackIOWrapper(upload_callback, f)
+            r = self.session.post(upload_url, headers=headers, data=wrapped_file)
 
         r.raise_for_status()
         return r.json()["scottyResourceId"]
 
-    def _create_video(self, scotty_resource_id: str, metadata: Metadata) -> str:
-        params = {"key": self.innertube_api_key, "alt": "json"}
-        """
-        data = {
-            "channelId": self.channel_id,
-            "context": APIContext.from_session_data(
-                self.channel_id, self.session_token
-            ).to_dict(),
-            "delegationContext": APIDelegationContext(self.channel_id).to_dict(),
-            "frontendUploadId": self.front_end_upload_id,
-            "initialMetadata": APIInitialMetadata.from_metadata(metadata).to_dict(),
-            "presumedShort": False,
-            "resourceId": {"scottyResourceId": {"id": scotty_resource_id}},
-        }
-        """
+    def _create_video(
+        self, scotty_resource_id: str, metadata: Metadata, data: YTUploaderVideoData
+    ) -> str:
+        params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestCreateVideo.from_session_data(
-            self.channel_id,
+            data.channel_id,
             self.session_token,
-            self.front_end_upload_id,
+            data.front_end_upload_id,
             metadata,
             False,
             scotty_resource_id,
         ).to_dict()
-        print(data)
         r = self.session.post(
             "https://studio.youtube.com/youtubei/v1/upload/createvideo",
             params=params,
@@ -219,12 +286,16 @@ class YTUploaderSession:
         r.raise_for_status()
         return r.json()["videoId"]
 
-    def _update_metadata(self, encrypted_video_id: str, metadata: Metadata):
-        params = {"key": self.innertube_api_key, "alt": "json"}
+    def _update_metadata(self, metadata: Metadata, data: YTUploaderVideoData):
+        params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestUpdateMetadata.from_session_data(
-            self.channel_id, self.session_token, encrypted_video_id, metadata
+            data.channel_id,
+            self.session_token,
+            data.encrypted_video_id,
+            metadata,
+            data.thumbnail_scotty_id,
+            data.thumbnail_format,
         ).to_dict()
-        print(data)
         r = self.session.post(
             "https://studio.youtube.com/youtubei/v1/video_manager/metadata_update",
             params=params,
@@ -234,13 +305,20 @@ class YTUploaderSession:
 
 
 if __name__ == "__main__":
-    uploader = YTUploaderSession.from_cookies_txt("cookies.txt")
-    file_path = "test.mp4"
+    uploader = YTUploaderSession.from_cookies_txt("test/cookies.txt")
+    file_path = "test/video.mp4"
     metadata = Metadata(
         "test title",
         "test description",
         PrivacyEnum.UNLISTED,
         tags=["Music", "test tag lol"],
         allow_comments=False,
+        thumbnail="test/thumb.jpg",
     )
-    uploader.upload(file_path, metadata)
+    with tqdm.tqdm(total=100) as pbar:
+
+        def callback(step: str, prog: int):
+            pbar.n = prog
+            pbar.update()
+
+        uploader.upload(file_path, metadata, callback)

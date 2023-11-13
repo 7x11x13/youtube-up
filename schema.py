@@ -242,6 +242,21 @@ class APIUpdateMetadataRemoveDraftState(UpdateMetadataBase):
     operation: str = "MDE_DRAFT_STATE_UPDATE_OPERATION_REMOVE_DRAFT_STATE"
 
 
+@dataclass_json
+@dataclass(frozen=True)
+class APIImage(UpdateMetadataBase):
+    encryptedScottyResourceId: str
+    format: str
+    name: str = "CUSTOM_THUMBNAIL_IMAGE_NAME_DEFAULT"
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIUpdateMetadataThumbnail(UpdateMetadataBase):
+    image: APIImage
+    operation: str = "UPLOAD_CUSTOM_THUMBNAIL"
+
+
 class PrivacyEnum(str, Enum):
     PRIVATE = "PRIVATE"
     UNLISTED = "UNLISTED"
@@ -287,6 +302,11 @@ class CommentsSortOrderEnum(str, Enum):
     TOP = "MDE_COMMENT_SORT_ORDER_TOP"
 
 
+class ThumbnailFormatEnum(str, Enum):
+    PNG = "CUSTOM_THUMBNAIL_IMAGE_FORMAT_PNG"
+    JPG = "CUSTOM_THUMBNAIL_IMAGE_FORMAT_JPEG"
+
+
 RacyDict = {
     True: "MDE_RACY_TYPE_RESTRICTED",
     False: "MDE_RACY_TYPE_NOT_RESTRICTED",
@@ -303,6 +323,7 @@ class Metadata:
     made_for_kids: bool = False
     tags: list[str] = ()
     # optional metadata for update_metadata
+    thumbnail: Optional[str] = None
     publish_to_feed: Optional[bool] = None
     category: Optional[CategoryEnum] = None
     auto_chapter: Optional[bool] = None
@@ -420,6 +441,9 @@ class APIRequestUpdateMetadata:
     publishingOptions: Optional[APIUpdateMetadataPublishingOptions] = field(
         default=None, metadata=config(exclude=lambda x: x is None)
     )
+    videoStill: Optional[APIUpdateMetadataThumbnail] = field(
+        default=None, metadata=config(exclude=lambda x: x is None)
+    )
 
     @classmethod
     def from_session_data(
@@ -428,6 +452,8 @@ class APIRequestUpdateMetadata:
         session_token: str,
         encrypted_video_id: str,
         metadata: Metadata,
+        thumbnail_scotty_id: Optional[str] = None,
+        thumbnail_format: Optional[str] = None,
     ):
         return cls(
             APIContext.from_session_data(channel_id, session_token),
@@ -464,5 +490,8 @@ class APIRequestUpdateMetadata:
             APIUpdateMetadataLicense.from_metadata_args(metadata.license),
             APIUpdateMetadataPublishingOptions.from_metadata_args(
                 metadata.publish_to_feed
+            ),
+            APIUpdateMetadataThumbnail.from_metadata_args(
+                APIImage.from_metadata_args(thumbnail_scotty_id, thumbnail_format)
             ),
         )

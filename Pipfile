@@ -8,6 +8,7 @@ selenium = "*"
 selenium-wire = "*"
 requests = "*"
 dataclasses-json = "*"
+tqdm = "*"
 
 [dev-packages]
 
