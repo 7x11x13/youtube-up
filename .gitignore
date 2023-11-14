@@ -2,3 +2,5 @@ test
 notes
 .venv
 todo
+.python-version
+__pycache__
