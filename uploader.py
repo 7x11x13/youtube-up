@@ -25,6 +25,7 @@ class YTUploaderException(Exception):
 
 @dataclass
 class YTUploaderVideoData:
+    authuser: str = None
     channel_id: str = None
     innertube_api_key: str = None
     front_end_upload_id: str = None
@@ -35,6 +36,7 @@ class YTUploaderVideoData:
 
 class YTUploaderSession:
     innertube_api_key_regex = re.compile(r'"INNERTUBE_API_KEY":"([^"]*)"')
+    session_index_regex = re.compile(r'"SESSION_INDEX":"([^"]*)"')
     channel_id_regex = re.compile(r"https://studio.youtube.com/channel/([^/]*)/*")
     progress_steps = {
         "start": 0,
@@ -104,7 +106,7 @@ class YTUploaderSession:
 
         # set thumbnail
         if metadata.thumbnail is not None:
-            url = self._get_upload_url_thumbnail()
+            url = self._get_upload_url_thumbnail(data)
             data.thumbnail_scotty_id = self._upload_file(
                 url,
                 metadata.thumbnail,
@@ -162,7 +164,8 @@ class YTUploaderSession:
         driver.get("https://youtube.com")
 
         for cookie in self.cookies:
-            driver.add_cookie(cookie.__dict__)
+            if cookie.name != "YT_UPLOADER_SESSION_ID":
+                driver.add_cookie(cookie.__dict__)
 
         driver.get("https://youtube.com/upload")
 
@@ -222,9 +225,10 @@ class YTUploaderSession:
 
         data.channel_id = self.channel_id_regex.match(r.url).group(1)
         data.innertube_api_key = self.innertube_api_key_regex.search(r.text).group(1)
+        data.authuser = self.session_index_regex.search(r.text).group(1)
 
-    def _get_upload_url(self, api_url: str, data: dict) -> str:
-        params = {"authuser": 0}
+    def _get_upload_url(self, api_url: str, authuser: str, data: dict) -> str:
+        params = {"authuser": authuser}
         headers = {
             "x-goog-upload-command": "start",
             "x-goog-upload-protocol": "resumable",
@@ -243,12 +247,13 @@ class YTUploaderSession:
         data.front_end_upload_id = f"innertube_studio:{self._generateUUID()}:0"
         return self._get_upload_url(
             "https://upload.youtube.com/upload/studio",
+            data.authuser,
             {"frontendUploadId": data.front_end_upload_id},
         )
 
-    def _get_upload_url_thumbnail(self) -> str:
+    def _get_upload_url_thumbnail(self, data: YTUploaderVideoData) -> str:
         return self._get_upload_url(
-            "https://upload.youtube.com/upload/studiothumbnail", {}
+            "https://upload.youtube.com/upload/studiothumbnail", data.authuser, {}
         )
 
     def _get_creator_playlists(self, data: YTUploaderVideoData) -> dict[str, str]:
@@ -323,17 +328,18 @@ class YTUploaderSession:
         self, scotty_resource_id: str, metadata: Metadata, data: YTUploaderVideoData
     ) -> str:
         params = {"key": data.innertube_api_key, "alt": "json"}
+        headers = {"X-Goog-AuthUser": data.authuser}
         data = APIRequestCreateVideo.from_session_data(
             data.channel_id,
             self.session_token,
             data.front_end_upload_id,
             metadata,
-            False,
             scotty_resource_id,
         ).to_dict()
         r = self.session.post(
             "https://studio.youtube.com/youtubei/v1/upload/createvideo",
             params=params,
+            headers=headers,
             json=data,
         )
         r.raise_for_status()
@@ -341,6 +347,7 @@ class YTUploaderSession:
 
     def _update_metadata(self, metadata: Metadata, data: YTUploaderVideoData):
         params = {"key": data.innertube_api_key, "alt": "json"}
+        headers = {"X-Goog-AuthUser": data.authuser}
         data = APIRequestUpdateMetadata.from_session_data(
             data.channel_id,
             self.session_token,
@@ -352,6 +359,7 @@ class YTUploaderSession:
         r = self.session.post(
             "https://studio.youtube.com/youtubei/v1/video_manager/metadata_update",
             params=params,
+            headers=headers,
             json=data,
         )
         r.raise_for_status()
@@ -359,19 +367,14 @@ class YTUploaderSession:
 
 if __name__ == "__main__":
     uploader = YTUploaderSession.from_cookies_txt("test/cookies.txt")
-    file_path = "test/video.mp4"
+    file_path = "test/short.webm"
     metadata = Metadata(
-        "test title",
+        "test title not short",
         "test description",
-        PrivacyEnum.UNLISTED,
+        PrivacyEnum.PUBLIC,
         tags=["Music", "test tag lol"],
         allow_comments=False,
-        thumbnail="test/thumb.jpg",
-        playlists=[
-            Playlist("hello playlist", "testing helloi", PrivacyEnum.UNLISTED),
-            Playlist("test pklaylist"),
-        ],
-        scheduled_upload=datetime.datetime(2023, 12, 25, 0, 0, 0),
+        thumbnail="test/thumb.jpg"
     )
     with tqdm.tqdm(total=100) as pbar:
 

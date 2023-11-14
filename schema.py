@@ -351,7 +351,6 @@ class APIRequestCreateVideo:
         session_token: str,
         front_end_upload_id: str,
         metadata: Metadata,
-        presumed_short: bool,
         scotty_resource_id: str,
     ):
         return cls(
@@ -360,7 +359,7 @@ class APIRequestCreateVideo:
             APIDelegationContext(channel_id),
             front_end_upload_id,
             APIInitialMetadata.from_metadata(metadata),
-            presumed_short,
+            False, # apparently does nothing; will be a short if video meets short requirements regardless
             APIScottyResourceID(APIID(scotty_resource_id)),
         )
 
@@ -514,11 +513,15 @@ class APIRequestUpdateMetadata:
             premier_upload_time = metadata.scheduled_upload
             scheduled_upload_time = None
             metadata.privacy = PrivacyEnum.PUBLIC
-        else:
+        elif metadata.scheduled_upload is not None:
             # scheduled upload
             premier_upload_time = None
             scheduled_upload_time = metadata.scheduled_upload
             metadata.privacy = PrivacyEnum.PRIVATE
+        else:
+            # neither scheduled upload nor premiere
+            premier_upload_time = None
+            scheduled_upload_time = None
 
         return cls(
             APIContext.from_session_data(channel_id, session_token),

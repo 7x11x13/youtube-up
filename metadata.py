@@ -81,7 +81,7 @@ class PremiereThemeEnum(str, Enum):
     SPORTS = "VIDEO_PREMIERE_INTRO_THEME_SPORTS"
 
 
-@dataclass(frozen=True)
+@dataclass
 class Playlist:
     title: str
     description: str = ""
