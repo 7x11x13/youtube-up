@@ -38,7 +38,7 @@ def main():
         "--description", help="Description. Max length 5000", default=""
     )
     video_parser.add_argument(
-        "--privacy", help="Privacy", type=PrivacyEnum.__getattr__, required=True
+        "--privacy", help="Privacy", type=PrivacyEnum, required=True
     )
     video_parser.add_argument(
         "--made_for_kids",
@@ -46,7 +46,7 @@ def main():
         action=argparse.BooleanOptionalAction,
         default=False,
     )
-    video_parser.add_argument("--tags", nargs="+", help="List of tags")
+    video_parser.add_argument("--tags", nargs="+", help="List of tags", default=[])
     video_parser.add_argument(
         "--scheduled_upload",
         help="Date to make upload public, in ISO format. If set, video will be set to private until the"
@@ -62,7 +62,7 @@ def main():
     video_parser.add_argument(
         "--premiere_theme",
         help="Theme of premiere countdown",
-        type=PremiereThemeEnum.__getattr__,
+        type=PremiereThemeEnum,
     )
     video_parser.add_argument(
         "--playlist_ids",
@@ -78,7 +78,7 @@ def main():
     video_parser.add_argument(
         "--category",
         help="Category. Category-specific metadata is not supported yet",
-        type=CategoryEnum.__getattr__,
+        type=CategoryEnum,
     )
     video_parser.add_argument(
         "--auto_chapter",
@@ -123,7 +123,7 @@ def main():
     video_parser.add_argument(
         "--license",
         help="License",
-        type=LicenseEnum.__getattr__,
+        type=LicenseEnum,
     )
     video_parser.add_argument(
         "--allow_comments",
@@ -133,7 +133,7 @@ def main():
     video_parser.add_argument(
         "--allow_comments_mode",
         help="Comment filtering mode",
-        type=AllowCommentsEnum.__getattr__,
+        type=AllowCommentsEnum,
     )
     video_parser.add_argument(
         "--can_view_ratings",
@@ -143,7 +143,7 @@ def main():
     video_parser.add_argument(
         "--comments_sort_order",
         help="Default comment sort order",
-        type=CommentsSortOrderEnum.__getattr__,
+        type=CommentsSortOrderEnum,
     )
     video_parser.add_argument(
         "--allow_embedding",
@@ -174,7 +174,6 @@ def main():
         args_dict.pop("command")
         video_file = args_dict.pop("filename")
         metadata = Metadata.from_dict(args_dict)
-
         with tqdm.tqdm(total=100) as pbar:
 
             def callback(step: str, prog: int):
