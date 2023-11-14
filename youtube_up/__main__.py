@@ -14,7 +14,7 @@ def main():
         prog="youtube-up",
         description="Upload videos to YouTube using the internal YouTube API",
     )
-    subparsers = parser.add_subparsers(help="commands", dest="command")
+    subparsers = parser.add_subparsers(help="commands", dest="command", required=True)
 
     json_parser = subparsers.add_parser("json")
     json_parser.add_argument(
