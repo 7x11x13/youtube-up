@@ -539,7 +539,7 @@ class APIRequestUpdateMetadata:
                 metadata.has_product_placement, metadata.show_product_placement_overlay
             ),
             APIUpdateMetadataRacy.from_metadata_args(
-                RacyDict[metadata.restriced_to_over_18]
+                RacyDict[metadata.restricted_to_over_18]
             ),
             APIUpdateMetadataAudioLanguage.from_metadata_args(metadata.audio_language),
             APIUpdateMetadataRecordedDate.from_metadata_args(

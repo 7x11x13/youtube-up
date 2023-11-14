@@ -6,13 +6,19 @@ authors = ["7x11x13 <x7x11x13@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 selenium = "^4.15.2"
 selenium-wire = "^5.1.0"
 requests = "^2.31.0"
 dataclasses-json = "^0.6.2"
 tqdm = "^4.66.1"
 
+[tool.poetry.scripts]
+youtube-up = "youtube_up.__main__:main"
+
+
+[tool.poetry.group.docs.dependencies]
+pdoc = "^14.1.0"
 
 [build-system]
 requires = ["poetry-core"]
