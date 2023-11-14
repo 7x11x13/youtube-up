@@ -28,7 +28,7 @@ jobs:
       # ADJUST THIS: install all dependencies (including pdoc)
       - run: poetry install --with docs
       # ADJUST THIS: build your documentation into docs/.
-      - run: poetry run pdoc --docformat google youtube_up
+      - run: poetry run pdoc --docformat google youtube_up -o docs/
 
       - uses: actions/upload-pages-artifact@v2
         with:
