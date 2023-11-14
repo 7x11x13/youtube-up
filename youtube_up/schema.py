@@ -4,7 +4,7 @@ from typing import Optional
 
 from dataclasses_json import config, dataclass_json
 
-from metadata import *
+from .metadata import *
 
 
 @dataclass_json
@@ -359,7 +359,7 @@ class APIRequestCreateVideo:
             APIDelegationContext(channel_id),
             front_end_upload_id,
             APIInitialMetadata.from_metadata(metadata),
-            False, # apparently does nothing; will be a short if video meets short requirements regardless
+            False,  # apparently does nothing; will be a short if video meets short requirements regardless
             APIScottyResourceID(APIID(scotty_resource_id)),
         )
 

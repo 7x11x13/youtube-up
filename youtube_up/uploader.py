@@ -15,8 +15,8 @@ from seleniumwire import webdriver
 from seleniumwire.utils import decode
 from tqdm.utils import CallbackIOWrapper
 
-from metadata import *
-from schema import *
+from .metadata import *
+from .schema import *
 
 
 class YTUploaderException(Exception):
@@ -365,6 +365,8 @@ class YTUploaderSession:
         r.raise_for_status()
 
 
+__all__ = ["YTUploaderSession", "YTUploaderException"]
+
 if __name__ == "__main__":
     uploader = YTUploaderSession.from_cookies_txt("test/cookies.txt")
     file_path = "test/short.webm"
@@ -374,7 +376,7 @@ if __name__ == "__main__":
         PrivacyEnum.PUBLIC,
         tags=["Music", "test tag lol"],
         allow_comments=False,
-        thumbnail="test/thumb.jpg"
+        thumbnail="test/thumb.jpg",
     )
     with tqdm.tqdm(total=100) as pbar:
 

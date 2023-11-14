@@ -120,3 +120,18 @@ class Metadata:
     can_view_ratings: Optional[bool] = None
     comments_sort_order: Optional[CommentsSortOrderEnum] = None
     allow_embedding: Optional[bool] = None
+
+
+__all__ = [
+    "Metadata",
+    "Playlist",
+    "PremiereThemeEnum",
+    "PremiereDurationEnum",
+    "ThumbnailFormatEnum",
+    "CommentsSortOrderEnum",
+    "AllowCommentsEnum",
+    "LicenseEnum",
+    "LanguageEnum",
+    "CategoryEnum",
+    "PrivacyEnum",
+]
