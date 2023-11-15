@@ -1,11 +1,60 @@
 import argparse
-import datetime
 import json
 
 import tqdm
 
 from .metadata import *
 from .uploader import YTUploaderSession
+
+try:
+    from argparse import BooleanOptionalAction
+except ImportError:
+
+    class BooleanOptionalAction(argparse.Action):
+        def __init__(
+            self,
+            option_strings,
+            dest,
+            default=None,
+            type=None,
+            choices=None,
+            required=False,
+            help=None,
+            metavar=None,
+        ):
+            _option_strings = []
+            for option_string in option_strings:
+                _option_strings.append(option_string)
+
+                if option_string.startswith("--"):
+                    option_string = "--no-" + option_string[2:]
+                    _option_strings.append(option_string)
+
+            if (
+                help is not None
+                and default is not None
+                and default is not argparse.SUPPRESS
+            ):
+                help += " (default: %(default)s)"
+
+            super().__init__(
+                option_strings=_option_strings,
+                dest=dest,
+                nargs=0,
+                default=default,
+                type=type,
+                choices=choices,
+                required=required,
+                help=help,
+                metavar=metavar,
+            )
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            if option_string in self.option_strings:
+                setattr(namespace, self.dest, not option_string.startswith("--no-"))
+
+        def format_usage(self):
+            return " | ".join(self.option_strings)
 
 
 def main():
@@ -40,7 +89,7 @@ def main():
     video_parser.add_argument(
         "--made_for_kids",
         help="Made for kids. If true comments will be disabled",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
         default=False,
     )
     video_parser.add_argument("--tags", nargs="+", help="List of tags", default=[])
@@ -70,7 +119,7 @@ def main():
     video_parser.add_argument(
         "--publish_to_feed",
         help="Whether to notify subscribers",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--category",
@@ -80,27 +129,27 @@ def main():
     video_parser.add_argument(
         "--auto_chapter",
         help="Whether to use automatic video chapters",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--auto_places",
         help="Whether to use automatic places",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--auto_concepts",
         help="Whether to use automatic concepts",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--has_product_placement",
         help="Whether video has product placement",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--show_product_placement_overlay",
         help="Whether to show product placement overlay",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--recorded_date",
@@ -109,12 +158,12 @@ def main():
     video_parser.add_argument(
         "--restricted_to_over_18",
         help="Whether video is age restricted",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--audio_language",
         help="Language of audio. If uploading captions this must be set",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--license",
@@ -124,7 +173,7 @@ def main():
     video_parser.add_argument(
         "--allow_comments",
         help="Whether to allow comments",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--allow_comments_mode",
@@ -134,7 +183,7 @@ def main():
     video_parser.add_argument(
         "--can_view_ratings",
         help="Whether video likes/dislikes can be seen",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
     video_parser.add_argument(
         "--comments_sort_order",
@@ -144,7 +193,7 @@ def main():
     video_parser.add_argument(
         "--allow_embedding",
         help="Whether to allow embedding on 3rd party sites",
-        action=argparse.BooleanOptionalAction,
+        action=BooleanOptionalAction,
     )
 
     args = parser.parse_args()

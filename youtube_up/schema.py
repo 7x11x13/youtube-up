@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Optional
 
 from dataclasses_json import config, dataclass_json
 
@@ -27,7 +27,7 @@ class APISessionInfo:
 @dataclass_json
 @dataclass(frozen=True)
 class APIRequest:
-    internalExperimentFlags: list = ()
+    internalExperimentFlags: List = ()
     returnLogEntry: bool = True
     sessionInfo: APISessionInfo = APISessionInfo()
 
@@ -107,7 +107,7 @@ class APIMetadataDraftState:
 @dataclass_json
 @dataclass(frozen=True)
 class APIMetadataTags:
-    newTags: list[str]
+    newTags: List[str]
 
 
 class UpdateMetadataBase:
@@ -261,8 +261,8 @@ class APIUpdateMetadataThumbnail(UpdateMetadataBase):
 @dataclass_json
 @dataclass(frozen=True)
 class APIUpdateMetadataPlaylists(UpdateMetadataBase):
-    addToPlaylistIds: list[str]
-    deleteFromPlaylistIds: list[str] = ()
+    addToPlaylistIds: List[str]
+    deleteFromPlaylistIds: List[str] = ()
 
 
 @dataclass_json
@@ -378,7 +378,7 @@ class APIRequestListPlaylists:
     context: APIContext
     delegationContext: APIDelegationContext
     mask: APIRequestListPlaylistsMask = APIRequestListPlaylistsMask()
-    memberVideoIds: list[str] = ()
+    memberVideoIds: List[str] = ()
     pageSize: int = 500
 
     @classmethod

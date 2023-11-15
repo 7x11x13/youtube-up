@@ -7,7 +7,7 @@ import time
 import uuid
 from hashlib import sha1
 from http.cookiejar import Cookie, FileCookieJar, MozillaCookieJar
-from typing import Callable
+from typing import Callable, Dict
 
 import requests
 import tqdm
@@ -296,7 +296,7 @@ class YTUploaderSession:
             "https://upload.youtube.com/upload/studiothumbnail", data.authuser, {}
         )
 
-    def _get_creator_playlists(self, data: YTUploaderVideoData) -> dict[str, str]:
+    def _get_creator_playlists(self, data: YTUploaderVideoData) -> Dict[str, str]:
         params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestListPlaylists.from_session_data(
             data.channel_id,
@@ -386,7 +386,9 @@ class YTUploaderSession:
         r = r.json()
         if "videoId" not in r:
             print(r)
-            raise YTUploaderException("Could not upload. Daily limit may have been reached")
+            raise YTUploaderException(
+                "Could not upload. Daily limit may have been reached"
+            )
         return r["videoId"]
 
     def _update_metadata(self, metadata: Metadata, data: YTUploaderVideoData):

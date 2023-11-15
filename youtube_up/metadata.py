@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from dataclasses_json import config, dataclass_json
 
@@ -147,7 +147,7 @@ class Metadata:
     made_for_kids: bool = False
     """Made for kids. If true comments will be disabled"""
 
-    tags: list[str] = ()
+    tags: List[str] = ()
     """List of tags"""
 
     # optional metadata for update_metadata
@@ -173,10 +173,10 @@ class Metadata:
     CINEMATIC, CONTEMPORARY, DRAMATIC, FUNKY, GENTLE, HAPPY, INSPIRATIONAL, KIDS, SCI_FI, SPORTS
     """
 
-    playlist_ids: Optional[list[str]] = None
+    playlist_ids: Optional[List[str]] = None
     """List of existing playlist IDs to add video to"""
 
-    playlists: Optional[list[Playlist]] = None
+    playlists: Optional[List[Playlist]] = None
     """List of playlists to create and/or add video to"""
 
     thumbnail: Optional[str] = None
