@@ -1,7 +1,6 @@
 import argparse
 import datetime
 import json
-from enum import Enum
 
 import tqdm
 
@@ -19,7 +18,7 @@ def main():
     json_parser = subparsers.add_parser("json")
     json_parser.add_argument(
         "filename",
-        help=".json file specifying videos to upload. File should"
+        help="JSON file specifying videos to upload. File should"
         "be an array of objects with 'file' and 'metadata' keys where 'file' "
         "is a path to a video file and 'metadata' is structured as the Metadata"
         "class",
@@ -37,9 +36,7 @@ def main():
     video_parser.add_argument(
         "--description", help="Description. Max length 5000", default=""
     )
-    video_parser.add_argument(
-        "--privacy", help="Privacy", type=PrivacyEnum, required=True
-    )
+    video_parser.add_argument("--privacy", help="Privacy", type=PrivacyEnum)
     video_parser.add_argument(
         "--made_for_kids",
         help="Made for kids. If true comments will be disabled",
@@ -49,10 +46,10 @@ def main():
     video_parser.add_argument("--tags", nargs="+", help="List of tags", default=[])
     video_parser.add_argument(
         "--scheduled_upload",
-        help="Date to make upload public, in ISO format. If set, video will be set to private until the"
-        " date, unless video is a premiere in which case it will be set to public. Video will not be a"
-        " premiere unless both premiere_countdown_duration and premiere_theme are set",
-        type=datetime.datetime.fromisoformat,
+        help="Date to make upload public, in ISO format (local time, unless timezone is specified)."
+        " If set, video will be set to private until the date, unless video is a premiere in which "
+        "case it will be set to public. Video will not be a premiere unless both "
+        "premiere_countdown_duration and premiere_theme are set",
     )
     video_parser.add_argument(
         "--premiere_countdown_duration",
@@ -108,7 +105,6 @@ def main():
     video_parser.add_argument(
         "--recorded_date",
         help="Day, month, and year that video was recorded, in ISO format",
-        type=datetime.date.fromisoformat,
     )
     video_parser.add_argument(
         "--restricted_to_over_18",

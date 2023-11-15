@@ -1,9 +1,9 @@
 import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from dataclasses_json import dataclass_json
+from dataclasses_json import config, dataclass_json
 
 
 class PrivacyEnum(str, Enum):
@@ -151,7 +151,13 @@ class Metadata:
     """List of tags"""
 
     # optional metadata for update_metadata
-    scheduled_upload: Optional[datetime.datetime] = None
+    scheduled_upload: Optional[datetime.datetime] = field(
+        default=None,
+        metadata=config(
+            decoder=datetime.datetime.fromisoformat,
+            encoder=datetime.datetime.isoformat,
+        ),
+    )
     """
     Date to make upload public. If set, video will be set to private until the date, unless video
     is a premiere in which case it will be set to public. Video will not be a premiere unless both
@@ -199,7 +205,13 @@ class Metadata:
     show_product_placement_overlay: Optional[bool] = None
     """Whether to show product placement overlay"""
 
-    recorded_date: Optional[datetime.date] = None
+    recorded_date: Optional[datetime.date] = field(
+        default=None,
+        metadata=config(
+            decoder=datetime.date.fromisoformat,
+            encoder=datetime.date.isoformat,
+        ),
+    )
     """Day, month, and year that video was recorded"""
 
     restricted_to_over_18: Optional[bool] = None
