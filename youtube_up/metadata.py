@@ -385,7 +385,7 @@ class Metadata:
     description: str = ""
     """Description. Max length 5000"""
 
-    privacy: Optional[PrivacyEnum] = PrivacyEnum.PRIVATE
+    privacy: PrivacyEnum = PrivacyEnum.PRIVATE
     """Privacy. Possible values: PUBLIC, UNLISTED, PRIVATE"""
 
     made_for_kids: bool = False

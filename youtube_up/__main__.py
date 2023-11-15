@@ -39,7 +39,7 @@ def main():
     video_parser.add_argument(
         "--description", help="Description. Max length 5000", default=""
     )
-    video_parser.add_argument("--privacy", help="Privacy", type=PrivacyEnum)
+    video_parser.add_argument("--privacy", help="Privacy", type=PrivacyEnum, default=PrivacyEnum.PRIVATE)
     video_parser.add_argument(
         "--made_for_kids",
         help="Made for kids. If true comments will be disabled",
