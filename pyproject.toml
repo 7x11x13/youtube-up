@@ -1,9 +1,12 @@
 [tool.poetry]
 name = "youtube-up"
-version = "0.1.0"
+version = "0.1.1"
 description = "Upload videos to YouTube using the internal YouTube API"
 authors = ["7x11x13 <x7x11x13@gmail.com>"]
 readme = "README.md"
+repository = "https://github.com/7x11x13/youtube-up"
+documentation = "https://7x11x13.xyz/youtube-up/youtube_up"
+keywords = ["YouTube", "upload"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
