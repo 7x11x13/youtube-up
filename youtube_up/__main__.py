@@ -117,7 +117,11 @@ def main():
     video_parser.add_argument(
         "--audio_language",
         help="Language of audio. If uploading captions this must be set",
-        action=BooleanOptionalAction,
+    )
+    video_parser.add_argument(
+        "--captions_file",
+        help="Path to captions file (.srt) with language audio_language",
+        type=CaptionsFile
     )
     video_parser.add_argument(
         "--license",

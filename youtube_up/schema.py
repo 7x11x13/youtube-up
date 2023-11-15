@@ -389,6 +389,63 @@ class APIRequestListPlaylists:
             APIDelegationContext(channel_id),
         )
 
+@dataclass_json
+@dataclass(frozen=True)
+class APICaptionsFile:
+    dataUri: str
+    fileName: str
+    
+@dataclass_json
+@dataclass(frozen=True)
+class APICaptionsTrackData:
+    lang: str
+    kind: str = ""
+    name: str = ""
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIOperationUpdateCaptions:
+    captionsFile: APICaptionsFile
+    ttsTrackId: APICaptionsTrackData
+    contentUpdateTime: str
+    isContentEdited: bool = False
+    userIntent: str = "USER_INTENT_EDIT_LATEST_DRAFT"
+    vote: str = "VOTE_PUBLISH"
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIRequestUpdateCaptions:
+    channelId: str
+    context: APIContext
+    operations: List[APIOperationUpdateCaptions]
+    videoId: str
+
+    @classmethod
+    def from_session_data(
+        cls,
+        channel_id: str,
+        session_token: str,
+        video_id: str,
+        caption_file: str,
+        caption_file_base64: str,
+        caption_language: str,
+        nanosecond_timestamp: str
+    ):
+        return cls(
+            channel_id,
+            APIContext.from_session_data(channel_id, session_token),
+            APIOperationUpdateCaptions(
+                APICaptionsFile(
+                    caption_file_base64, caption_file
+                ),
+                APICaptionsTrackData(
+                    caption_language
+                ),
+                nanosecond_timestamp
+            ),
+            video_id
+        )
+
 
 @dataclass_json
 @dataclass(frozen=True)

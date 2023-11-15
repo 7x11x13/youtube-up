@@ -1,3 +1,4 @@
+import base64
 import copy
 import json
 import math
@@ -17,6 +18,7 @@ from seleniumwire.utils import decode
 from tqdm.utils import CallbackIOWrapper
 
 from .metadata import *
+from .metadata import CaptionsFile
 from .schema import *
 
 try:
@@ -103,7 +105,7 @@ class YTUploaderSession:
         file_path: str,
         metadata: Metadata,
         progress_callback: Callable[[str, float], None] = lambda step, percent: None,
-    ):
+    ) -> str:
         """Upload a video
 
         Args:
@@ -112,7 +114,11 @@ class YTUploaderSession:
             progress_callback (Callable[[str, float], None], optional): Optional progress callback.
                 Callback receives what step uploader is on and what the total percentage of the upload
                 progress is (defined by YTUploaderSession._progress_steps).
+        
+        Returns:
+            str: ID of video uploaded
         """
+        metadata.validate()
         progress_callback("start", self._progress_steps["start"])
         data = YTUploaderVideoData()
         self._get_session_data(data)
@@ -165,13 +171,23 @@ class YTUploaderSession:
                     metadata.playlist_ids.append(playlist_id)
                 elif exists:
                     metadata.playlist_ids.append(playlists[playlist.title])
-
+        # captions
+        if metadata.captions_files:
+            for caption_file in metadata.captions_files:
+                if caption_file.language is None:
+                    caption_file.language = metadata.audio_language
+                self._update_captions(
+                    caption_file,
+                    data
+                )
+            
         self._update_metadata(metadata, data)
         # save cookies
         for cookie in self._session.cookies:
             self._cookies.set_cookie(cookie)
         self._cookies.save()
         progress_callback("finish", self._progress_steps["finish"])
+        return data.encrypted_video_id
 
     def has_valid_cookies(self) -> bool:
         """Check if cookies are valid
@@ -278,6 +294,7 @@ class YTUploaderSession:
         data.channel_id = self._channel_id_regex.match(r.url).group(1)
         data.innertube_api_key = self._innertube_api_key_regex.search(r.text).group(1)
         data.authuser = self._session_index_regex.search(r.text).group(1)
+        self._session.headers["X-Goog-AuthUser"] = data.authuser
 
     def _get_upload_url(self, api_url: str, authuser: str, data: dict) -> str:
         params = {"authuser": authuser}
@@ -342,6 +359,31 @@ class YTUploaderSession:
         r.raise_for_status()
         return r.json()["playlistId"]
 
+    def _update_captions(
+        self,
+        caption_file: CaptionsFile,
+        data: YTUploaderVideoData,
+    ):
+        params = {"key": data.innertube_api_key, "alt": "json"}
+        with open(caption_file.path, "rb") as f:
+            captions_b64 = "data:application/octet-stream;base64," + base64.b64encode(f.read()).decode("utf-8")
+        timestamp = str(time.time_ns())
+        data = APIRequestUpdateCaptions.from_session_data(
+            data.channel_id,
+            self._session_token,
+            data.encrypted_video_id,
+            caption_file.path,
+            captions_b64,
+            caption_file.language,
+            timestamp
+        ).to_dict()
+        r = self._session.post(
+            "https://studio.youtube.com/youtubei/v1/globalization/update_captions",
+            params=params,
+            json=data,
+        )
+        r.raise_for_status()
+
     def _upload_file(
         self,
         upload_url: str,
@@ -380,7 +422,6 @@ class YTUploaderSession:
         self, scotty_resource_id: str, metadata: Metadata, data: YTUploaderVideoData
     ) -> str:
         params = {"key": data.innertube_api_key, "alt": "json"}
-        headers = {"X-Goog-AuthUser": data.authuser}
         data = APIRequestCreateVideo.from_session_data(
             data.channel_id,
             self._session_token,
@@ -391,7 +432,6 @@ class YTUploaderSession:
         r = self._session.post(
             "https://studio.youtube.com/youtubei/v1/upload/createvideo",
             params=params,
-            headers=headers,
             json=data,
         )
         r.raise_for_status()
@@ -404,7 +444,6 @@ class YTUploaderSession:
 
     def _update_metadata(self, metadata: Metadata, data: YTUploaderVideoData):
         params = {"key": data.innertube_api_key, "alt": "json"}
-        headers = {"X-Goog-AuthUser": data.authuser}
         data = APIRequestUpdateMetadata.from_session_data(
             data.channel_id,
             self._session_token,
@@ -416,7 +455,6 @@ class YTUploaderSession:
         r = self._session.post(
             "https://studio.youtube.com/youtubei/v1/video_manager/metadata_update",
             params=params,
-            headers=headers,
             json=data,
         )
         r.raise_for_status()
