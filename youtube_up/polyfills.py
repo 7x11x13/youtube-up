@@ -90,10 +90,8 @@ class MozillaCookieJar(cj.FileCookieJar):
                     rest[HTTPONLY_ATTR] = ""
                     line = line[len(HTTPONLY_PREFIX):]
 
-                # last field may be absent, so keep any trailing tab
                 if line.endswith("\n"): line = line[:-1]
 
-                # skip comments and blank lines XXX what is $ for?
                 if (line.strip().startswith(("#", "$")) or
                     line.strip() == ""):
                     continue
@@ -103,9 +101,6 @@ class MozillaCookieJar(cj.FileCookieJar):
                 secure = (secure == "TRUE")
                 domain_specified = (domain_specified == "TRUE")
                 if name == "":
-                    # cookies.txt regards 'Set-Cookie: foo' as a cookie
-                    # with no name, whereas http.cookiejar regards it as a
-                    # cookie with no value.
                     name = value
                     value = None
 
@@ -116,8 +111,7 @@ class MozillaCookieJar(cj.FileCookieJar):
                 if expires == "":
                     expires = None
                     discard = True
-
-                # assume path_specified is false
+                    
                 c = cj.Cookie(0, name, value,
                            None, False,
                            domain, domain_specified, initial_dot,
@@ -164,9 +158,6 @@ class MozillaCookieJar(cj.FileCookieJar):
                 else:
                     expires = ""
                 if cookie.value is None:
-                    # cookies.txt regards 'Set-Cookie: foo' as a cookie
-                    # with no name, whereas http.cookiejar regards it as a
-                    # cookie with no value.
                     name = ""
                     value = cookie.name
                 else:
