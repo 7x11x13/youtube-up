@@ -4,3 +4,4 @@ notes
 todo
 .python-version
 __pycache__
+geckodriver.log

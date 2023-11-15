@@ -3,10 +3,11 @@ import json
 import math
 import os
 import re
+import sys
 import time
 import uuid
 from hashlib import sha1
-from http.cookiejar import Cookie, FileCookieJar, MozillaCookieJar
+from http.cookiejar import Cookie, FileCookieJar
 from typing import Callable, Dict
 
 import requests
@@ -17,6 +18,13 @@ from tqdm.utils import CallbackIOWrapper
 
 from .metadata import *
 from .schema import *
+
+try:
+    from http.cookiejar import HTTPONLY_ATTR, MozillaCookieJar
+except ImportError:
+    from .polyfills import HTTPONLY_ATTR, MozillaCookieJar
+    
+    
 
 
 class YTUploaderException(Exception):
@@ -67,7 +75,7 @@ class YTUploaderSession:
 
         # load cookies and init session
         self._cookies = cookie_jar
-        self._cookies.load(ignore_discard=True)
+        self._cookies.load(ignore_discard=True, ignore_expires=True)
         self._session = requests.Session()
         for cookie in self._cookies:
             if cookie.name == "SESSION_TOKEN":
@@ -159,6 +167,10 @@ class YTUploaderSession:
                     metadata.playlist_ids.append(playlists[playlist.title])
 
         self._update_metadata(metadata, data)
+        # save cookies
+        for cookie in self._session.cookies:
+            self._cookies.set_cookie(cookie)
+        self._cookies.save()
         progress_callback("finish", self._progress_steps["finish"])
 
     def has_valid_cookies(self) -> bool:
@@ -385,9 +397,8 @@ class YTUploaderSession:
         r.raise_for_status()
         r = r.json()
         if "videoId" not in r:
-            print(r)
             raise YTUploaderException(
-                "Could not upload. Daily limit may have been reached"
+                f"Could not upload. Daily limit may have been reached. Response: {r}"
             )
         return r["videoId"]
 
