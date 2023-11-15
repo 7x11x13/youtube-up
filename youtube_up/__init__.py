@@ -112,7 +112,7 @@ on December 25th, 2023 at 5 PM (local time).
 ]
 ```
 
-If we wanted the video to premiere at 5 PM GMT, would could have written "2023-12-25T17:00:00"
+If we wanted the video to premiere at 5 PM GMT, would could have written "2023-12-25T17:00:00+00:00"
 instead. We then run
 
 `youtube-up json metadata.json --cookies_file="cookies/cookies.txt"`
