@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional
 
+import marshmallow.fields as mm_field
 from dataclasses_json import config, dataclass_json
 
 
@@ -267,7 +268,6 @@ class LanguageEnum(str, Enum):
     ZULU = "zu"
 
 
-
 class LicenseEnum(str, Enum):
     STANDARD = "standard"
     CREATIVE_COMMONS = "creative_commons"
@@ -334,14 +334,18 @@ def enum_allow_key__new__(cls, value):
         return Enum.__new__(cls, value)
     except ValueError:
         # maybe key was specified instead of value?
-        value = getattr(cls, value)
-        return Enum.__new__(cls, value)
+        try:
+            value = getattr(cls, value)
+            return Enum.__new__(cls, value)
+        except (AttributeError, TypeError):
+            raise ValueError(f"{cls.__name__} has no key or value '{value}'")
 
 
 for enum_class in enum_classes:
     setattr(enum_class, "__new__", enum_allow_key__new__)
 
 
+@dataclass_json
 @dataclass
 class Playlist:
     """Metadata of playlist to create and/or add video to"""
@@ -363,6 +367,7 @@ class Playlist:
     """Whether to create playlist if there is no playlist with the same title"""
 
 
+@dataclass_json
 @dataclass
 class CaptionsFile:
     """Subtitles file"""
@@ -380,10 +385,10 @@ class Metadata:
     """Metadata of video to upload"""
 
     title: str
-    """Title. Max length 100"""
+    """Title. Max length 100. Cannot contain < or > characters"""
 
     description: str = ""
-    """Description. Max length 5000"""
+    """Description. Max length 5000. Cannot contain < or > characters"""
 
     privacy: PrivacyEnum = PrivacyEnum.PRIVATE
     """Privacy. Possible values: PUBLIC, UNLISTED, PRIVATE"""
@@ -398,8 +403,9 @@ class Metadata:
     scheduled_upload: Optional[datetime.datetime] = field(
         default=None,
         metadata=config(
-            decoder=datetime.datetime.fromisoformat,
-            encoder=datetime.datetime.isoformat,
+            decoder=lambda x: datetime.datetime.fromisoformat(x) if x is not None else None,
+            encoder=lambda x: datetime.datetime.isoformat(x) if x is not None else None,
+            mm_field=mm_field.DateTime("iso", allow_none=True)
         ),
     )
     """
@@ -452,8 +458,9 @@ class Metadata:
     recorded_date: Optional[datetime.date] = field(
         default=None,
         metadata=config(
-            decoder=datetime.date.fromisoformat,
-            encoder=datetime.date.isoformat,
+            decoder=lambda x: datetime.date.fromisoformat(x) if x is not None else None,
+            encoder=lambda x: datetime.date.isoformat(x) if x is not None else None,
+            mm_field=mm_field.Date("iso", allow_none=True)
         ),
     )
     """Day, month, and year that video was recorded"""
@@ -501,6 +508,25 @@ class Metadata:
                     raise ValueError(
                         "Must either specify captions file language or audio_language"
                     )
+        
+        if self.restricted_to_over_18 and self.made_for_kids:
+            raise ValueError(
+                "Video cannot be made for kids and also restricted to over 18"
+            )
+        
+        if len(self.title) > 100:
+            raise ValueError("Title must be at most 100 characters long")
+        
+        if len(self.description) > 5000:
+            raise ValueError("Description must be at most 5000 characters long")
+        
+        if any(c in s for c in "<>" for s in (self.title, self.description)):
+            raise ValueError("Title and description cannot contain angled brackets")
+        
+        
+        errors = self.schema().validate(self.to_dict())
+        if errors:
+            raise ValueError(f"{errors}")
 
 
 __all__ = [

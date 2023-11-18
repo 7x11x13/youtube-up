@@ -70,7 +70,8 @@ class YTUploaderSession:
         """Create YTUploaderSession from generic FileCookieJar
 
         Args:
-            cookie_jar (FileCookieJar): FileCookieJar. Must have save() and load() methods
+            cookie_jar (FileCookieJar): FileCookieJar. Must have save(), load(),
+                and set_cookie(http.cookiejar.Cookie) methods
         """
         self._session_token = ""
 
@@ -117,7 +118,10 @@ class YTUploaderSession:
         Returns:
             str: ID of video uploaded
         """
-        metadata.validate()
+        try:
+            metadata.validate()
+        except ValueError as ex:
+            raise YTUploaderException(f"Validation error: {ex}") from ex
         progress_callback("start", self._progress_steps["start"])
         data = YTUploaderVideoData()
         self._get_session_data(data)

@@ -176,7 +176,11 @@ def main():
         args_dict.pop("cookies_file")
         args_dict.pop("command")
         video_file = args_dict.pop("filename")
-        args_dict["captions_files"] = [args_dict.pop("captions_file")]
+        captions_file = args_dict.pop("captions_file")
+        if captions_file is None:
+            args_dict["captions_files"] = None
+        else:
+            args_dict["captions_files"] = [captions_file]
         metadata = Metadata.from_dict(args_dict)
         with tqdm.tqdm(total=100) as pbar:
 
