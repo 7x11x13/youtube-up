@@ -342,7 +342,7 @@ class YTUploaderSession:
         r.raise_for_status()
         return {
             playlist["title"]: playlist["playlistId"]
-            for playlist in r.json()["playlists"]
+            for playlist in r.json().get("playlists", [])
         }
 
     def _create_playlist(
