@@ -200,10 +200,7 @@ class YTUploaderSession:
         """
         r = self._session.get("https://youtube.com/upload")
 
-        if "studio.youtube.com/channel" not in r.url:
-            raise YTUploaderException(
-                "Could not log in to YouTube account. Try getting new cookies"
-            )
+        return "studio.youtube.com/channel" in r.url
 
     def _get_thumbnail_format(self, filename: str) -> ThumbnailFormatEnum:
         ext = filename.split(".")[-1]
