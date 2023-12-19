@@ -37,6 +37,7 @@ class YTUploaderVideoData:
     authuser: str = None
     channel_id: str = None
     innertube_api_key: str = None
+    delegated_session_id: str = None
     front_end_upload_id: str = None
     encrypted_video_id: str = None
     thumbnail_scotty_id: str = None
@@ -48,6 +49,7 @@ class YTUploaderSession:
     Class for uploading YouTube videos to a single channel
     """
 
+    _delegated_session_id_regex = re.compile(r'"DELEGATED_SESSION_ID":"([^"]*)"')
     _innertube_api_key_regex = re.compile(r'"INNERTUBE_API_KEY":"([^"]*)"')
     _session_index_regex = re.compile(r'"SESSION_INDEX":"([^"]*)"')
     _channel_id_regex = re.compile(r"https://studio.youtube.com/channel/([^/]*)/*")
@@ -293,6 +295,8 @@ class YTUploaderSession:
 
         data.channel_id = self._channel_id_regex.match(r.url).group(1)
         data.innertube_api_key = self._innertube_api_key_regex.search(r.text).group(1)
+        m = self._delegated_session_id_regex.search(r.text)
+        data.delegated_session_id = m and m.group(1)
         data.authuser = self._session_index_regex.search(r.text).group(1)
         self._session.headers["X-Goog-AuthUser"] = data.authuser
 
@@ -330,6 +334,7 @@ class YTUploaderSession:
         data = APIRequestListPlaylists.from_session_data(
             data.channel_id,
             self._session_token,
+            data.delegated_session_id
         ).to_dict()
         r = self._session.post(
             "https://studio.youtube.com/youtubei/v1/creator/list_creator_playlists",
@@ -349,7 +354,7 @@ class YTUploaderSession:
     ) -> str:
         params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestCreatePlaylist.from_session_data(
-            data.channel_id, self._session_token, playlist
+            data.channel_id, self._session_token, data.delegated_session_id, playlist
         ).to_dict()
         r = self._session.post(
             "https://studio.youtube.com/youtubei/v1/playlist/create",
@@ -371,6 +376,7 @@ class YTUploaderSession:
         data = APIRequestUpdateCaptions.from_session_data(
             data.channel_id,
             self._session_token,
+            data.delegated_session_id,
             data.encrypted_video_id,
             caption_file.path,
             captions_b64,
@@ -425,6 +431,7 @@ class YTUploaderSession:
         data = APIRequestCreateVideo.from_session_data(
             data.channel_id,
             self._session_token,
+            data.delegated_session_id,
             data.front_end_upload_id,
             metadata,
             scotty_resource_id,
@@ -447,6 +454,7 @@ class YTUploaderSession:
         data = APIRequestUpdateMetadata.from_session_data(
             data.channel_id,
             self._session_token,
+            data.delegated_session_id,
             data.encrypted_video_id,
             metadata,
             data.thumbnail_scotty_id,

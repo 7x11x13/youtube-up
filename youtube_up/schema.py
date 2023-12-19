@@ -54,6 +54,9 @@ class APIDelegationContext:
 @dataclass(frozen=True)
 class APIUser:
     delegationContext: APIDelegationContext
+    onBehalfOfUser: Optional[str] = field(
+        default=None, metadata=config(exclude=lambda x: x is None)
+    )
 
 
 @dataclass_json
@@ -64,11 +67,11 @@ class APIContext:
     user: APIUser
 
     @classmethod
-    def from_session_data(cls, channel_id: str, session_token: str):
+    def from_session_data(cls, channel_id: str, session_token: str, delegated_session_id: str):
         return cls(
             APIClient(),
             APIRequest(sessionInfo=APISessionInfo(session_token)),
-            APIUser(APIDelegationContext(channel_id)),
+            APIUser(APIDelegationContext(channel_id), onBehalfOfUser=delegated_session_id),
         )
 
 
@@ -354,13 +357,14 @@ class APIRequestCreateVideo:
         cls,
         channel_id: str,
         session_token: str,
+        delegated_session_id: Optional[str],
         front_end_upload_id: str,
         metadata: Metadata,
         scotty_resource_id: str,
     ):
         return cls(
             channel_id,
-            APIContext.from_session_data(channel_id, session_token),
+            APIContext.from_session_data(channel_id, session_token, delegated_session_id),
             APIDelegationContext(channel_id),
             front_end_upload_id,
             APIInitialMetadata.from_metadata(metadata),
@@ -387,10 +391,10 @@ class APIRequestListPlaylists:
     pageSize: int = 500
 
     @classmethod
-    def from_session_data(cls, channel_id: str, session_token: str):
+    def from_session_data(cls, channel_id: str, session_token: str, delegated_session_id: Optional[str]):
         return cls(
             channel_id,
-            APIContext.from_session_data(channel_id, session_token),
+            APIContext.from_session_data(channel_id, session_token, delegated_session_id),
             APIDelegationContext(channel_id),
         )
 
@@ -430,6 +434,7 @@ class APIRequestUpdateCaptions:
         cls,
         channel_id: str,
         session_token: str,
+        delegated_session_id: Optional[str],
         video_id: str,
         caption_file: str,
         caption_file_base64: str,
@@ -438,7 +443,7 @@ class APIRequestUpdateCaptions:
     ):
         return cls(
             channel_id,
-            APIContext.from_session_data(channel_id, session_token),
+            APIContext.from_session_data(channel_id, session_token, delegated_session_id),
             APIOperationUpdateCaptions(
                 APICaptionsFile(
                     caption_file_base64, caption_file
@@ -476,9 +481,9 @@ class APIRequestCreatePlaylist:
     podcastMetadata: APIPlaylistPodcastMetadata = APIPlaylistPodcastMetadata()
 
     @classmethod
-    def from_session_data(cls, channel_id: str, session_token: str, playlist: Playlist):
+    def from_session_data(cls, channel_id: str, session_token: str, delegated_session_id: Optional[str], playlist: Playlist):
         return cls(
-            APIContext.from_session_data(channel_id, session_token),
+            APIContext.from_session_data(channel_id, session_token, delegated_session_id),
             APIDelegationContext(channel_id),
             playlist.title,
             playlist.description,
@@ -562,6 +567,7 @@ class APIRequestUpdateMetadata:
         cls,
         channel_id: str,
         session_token: str,
+        delegated_session_id: Optional[str],
         encrypted_video_id: str,
         metadata: Metadata,
         thumbnail_scotty_id: Optional[str] = None,
@@ -586,7 +592,7 @@ class APIRequestUpdateMetadata:
             scheduled_upload_time = None
 
         return cls(
-            APIContext.from_session_data(channel_id, session_token),
+            APIContext.from_session_data(channel_id, session_token, delegated_session_id),
             APIDelegationContext(channel_id),
             encrypted_video_id,
             APIUpdateMetadataMadeForKids(MFKDict[metadata.made_for_kids]),
