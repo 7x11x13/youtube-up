@@ -11,11 +11,16 @@ from .metadata import *
 @dataclass(frozen=True)
 class APIClient:
     clientName: int = 62
-    clientVersion: str = "1.20231103.02.01"
+    clientVersion: str = "1.20231215.01.00"
     experimentsToken: str = ""
     gl: str = "US"
     hl: str = "en"
     utcOffsetMinutes: int = -300
+    userInterfaceTheme: str = "USER_INTERFACE_THEME_DARK"
+    screenWidthPoints: int = 1920
+    screenHeightPoints: int = 529
+    screenPixelDensity: int = 1
+    screenDensityFloat: int = 1
 
 
 @dataclass_json

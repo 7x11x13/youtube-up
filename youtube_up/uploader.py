@@ -468,7 +468,7 @@ if __name__ == "__main__":
     metadata = Metadata(
         "test title not short",
         "test description",
-        PrivacyEnum.PUBLIC,
+        PrivacyEnum.UNLISTED,
         tags=["Music", "test tag lol"],
         allow_comments=False,
         thumbnail="test/thumb.jpg",
