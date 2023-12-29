@@ -12,6 +12,8 @@ from typing import Callable, Dict
 
 import requests
 import tqdm
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from seleniumwire import webdriver
 from seleniumwire.utils import decode
 from tqdm.utils import CallbackIOWrapper
@@ -68,14 +70,16 @@ class YTUploaderSession:
     _cookies: FileCookieJar
     _session: requests.Session
 
-    def __init__(self, cookie_jar: FileCookieJar):
+    def __init__(self, cookie_jar: FileCookieJar, webdriver_path: Optional[str] = None):
         """Create YTUploaderSession from generic FileCookieJar
 
         Args:
             cookie_jar (FileCookieJar): FileCookieJar. Must have save(), load(),
                 and set_cookie(http.cookiejar.Cookie) methods
+            webdriver_path (str, optional): Optional path to geckodriver or chromedriver executable
         """
         self._session_token = ""
+        self._webdriver_path = webdriver_path
 
         # load cookies and init session
         self._cookies = cookie_jar
@@ -93,14 +97,15 @@ class YTUploaderSession:
         }
 
     @classmethod
-    def from_cookies_txt(cls, cookies_txt_path: str):
+    def from_cookies_txt(cls, cookies_txt_path: str, webdriver_path: Optional[str] = None):
         """Create YTUploaderSession from cookies.txt file
 
         Args:
             cookies_txt_path (str): Path to Netscape cookies format file
+            webdriver_path (str, optional): Optional path to geckodriver or chromedriver executable
         """
         cj = MozillaCookieJar(cookies_txt_path)
-        return cls(cj)
+        return cls(cj, webdriver_path)
 
     def upload(
         self,
@@ -219,13 +224,21 @@ class YTUploaderSession:
             # try firefox
             options = webdriver.FirefoxOptions()
             options.add_argument("--headless")
-            driver = webdriver.Firefox(options=options)
+            if self._webdriver_path:
+                service = FirefoxService(self._webdriver_path)
+                driver = webdriver.Firefox(options=options, service=service)
+            else:
+                driver = webdriver.Firefox(options=options)
         except Exception:
             try:
                 # try chrome
                 options = webdriver.ChromeOptions()
                 options.add_argument("--headless=new")
-                driver = webdriver.Chrome(options=options)
+                if self._webdriver_path:
+                    service = ChromeService(self._webdriver_path)
+                    driver = webdriver.Chrome(options=options, service=service)
+                else:
+                    driver = webdriver.Chrome(options=options)
             except Exception:
                 raise YTUploaderException(
                     "Could not launch Firefox or Chrome. Make sure geckodriver or chromedriver is installed"
