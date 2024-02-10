@@ -36,6 +36,12 @@ or the Enum value, or the Enum key, as a string. For example, instead of writing
 we could instead write `allow_comments_mode="HOLD_ALL"`
 or `allow_comments_mode="APPROVED_COMMENTS"`
 
+Also note the following extensions and specifications if you are extracting `cookies.txt` from your browser:
+
+- <https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/>
+- <https://chrome.google.com/webstore/detail/get-cookiestxt/bgaddhkoddajcdgocldbbfleckgcbcid/>
+- <http://fileformats.archiveteam.org/wiki/Netscape_cookies.txt>
+
 ## Upload multiple videos
 ```python
 from youtube_up import Metadata, YTUploaderSession
