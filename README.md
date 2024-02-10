@@ -38,11 +38,11 @@ or `allow_comments_mode="APPROVED_COMMENTS"`
 
 Also note the following extensions and specifications if you are extracting `cookies.txt` from your browser:
 
-- For Firefox: <https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/>
-- For Google Chrome, Chromium, and Chromium-based browsers: <https://chrome.google.com/webstore/detail/get-cookiestxt/bgaddhkoddajcdgocldbbfleckgcbcid/>
+- For Firefox and other Firefox-based browsers: <https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/>
+- For Google Chrome, Chromium, and other Chromium-based browsers: <https://chrome.google.com/webstore/detail/get-cookiestxt/bgaddhkoddajcdgocldbbfleckgcbcid/>
 - The `cookies.txt` specification: <http://fileformats.archiveteam.org/wiki/Netscape_cookies.txt>
 
-If you are using firefox, you can also extract it like this from the `cookies.sqlite` file in your profile directory which you can *usually* find in the `~/.mozilla/firefox/<random>.<profile name>/` directory:
+If you are using Firefox (or another Firefox-based browser), you can also extract `cookies.txt` like this from the `cookies.sqlite` file located in your browser profile directory, which you can *usually* find in the `~/.mozilla/firefox/<random>.<profile name>/` directory:
 
 ```sh
 echo "# HTTP Cookie File"
@@ -59,6 +59,8 @@ value
 from moz_cookies;
 EOF
 ```
+
+To find that profile you are using visit `about:profiles` in your browser (Firefox).
 
 ## Upload multiple videos
 ```python
