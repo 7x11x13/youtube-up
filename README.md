@@ -38,11 +38,11 @@ or `allow_comments_mode="APPROVED_COMMENTS"`
 
 Also note the following extensions and specifications if you are extracting `cookies.txt` from your browser:
 
-- <https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/>
-- <https://chrome.google.com/webstore/detail/get-cookiestxt/bgaddhkoddajcdgocldbbfleckgcbcid/>
-- <http://fileformats.archiveteam.org/wiki/Netscape_cookies.txt>
+- For Firefox: <https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/>
+- For Google Chrome, Chromium, and Chromium-based browsers: <https://chrome.google.com/webstore/detail/get-cookiestxt/bgaddhkoddajcdgocldbbfleckgcbcid/>
+- The `cookies.txt` specification: <http://fileformats.archiveteam.org/wiki/Netscape_cookies.txt>
 
-If you are using firefox, you can also extract it like this from the `cookies.sqlite` file in your profile directory which you can *usually* find in `~/.mozilla/firefox/<random>.<profile name>/` directory:
+If you are using firefox, you can also extract it like this from the `cookies.sqlite` file in your profile directory which you can *usually* find in the `~/.mozilla/firefox/<random>.<profile name>/` directory:
 
 ```sh
 echo "# HTTP Cookie File"
