@@ -42,6 +42,24 @@ Also note the following extensions and specifications if you are extracting `coo
 - <https://chrome.google.com/webstore/detail/get-cookiestxt/bgaddhkoddajcdgocldbbfleckgcbcid/>
 - <http://fileformats.archiveteam.org/wiki/Netscape_cookies.txt>
 
+If you are using firefox, you can also extract it like this from the `cookies.sqlite` file in your profile directory which you can *usually* find in `~/.mozilla/firefox/<random>.<profile name>/` directory:
+
+```sh
+echo "# HTTP Cookie File"
+sqlite3 -separator '	' "cookies.sqlite" <<- EOF
+.mode tabs
+.header off
+select host,
+case substr(host,1,1)='.' when 0 then 'FALSE' else 'TRUE' end,
+path,
+case isSecure when 0 then 'FALSE' else 'TRUE' end,
+expiry,
+name,
+value
+from moz_cookies;
+EOF
+```
+
 ## Upload multiple videos
 ```python
 from youtube_up import Metadata, YTUploaderSession
