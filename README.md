@@ -36,31 +36,11 @@ or the Enum value, or the Enum key, as a string. For example, instead of writing
 we could instead write `allow_comments_mode="HOLD_ALL"`
 or `allow_comments_mode="APPROVED_COMMENTS"`
 
-Also note the following extensions and specifications if you are extracting `cookies.txt` from your browser:
+### Note about cookies.txt format
+The cookies file must be in [Netscape cookies.txt](https://docs.cyotek.com/cyowcopy/current/netscapecookieformat.html) format. See the following browser extensions for exporting cookies in the correct format:
 
-- For Firefox and other Firefox-based browsers: <https://addons.mozilla.org/en-US/firefox/addon/cookies-txt/>
-- For Google Chrome, Chromium, and other Chromium-based browsers: <https://chrome.google.com/webstore/detail/get-cookiestxt/bgaddhkoddajcdgocldbbfleckgcbcid/>
-- The `cookies.txt` specification: <http://fileformats.archiveteam.org/wiki/Netscape_cookies.txt>
-
-If you are using Firefox (or another Firefox-based browser), you can also extract `cookies.txt` like this from the `cookies.sqlite` file located in your browser profile directory, which you can *usually* find in the `~/.mozilla/firefox/<random>.<profile name>/` directory:
-
-```sh
-echo "# HTTP Cookie File"
-sqlite3 -separator '	' "cookies.sqlite" <<- EOF
-.mode tabs
-.header off
-select host,
-case substr(host,1,1)='.' when 0 then 'FALSE' else 'TRUE' end,
-path,
-case isSecure when 0 then 'FALSE' else 'TRUE' end,
-expiry,
-name,
-value
-from moz_cookies;
-EOF
-```
-
-To find that profile you are using visit `about:profiles` in your browser (Firefox).
+- [Firefox](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt)
+- [Chrome](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
 
 ## Upload multiple videos
 ```python
