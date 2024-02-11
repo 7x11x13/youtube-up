@@ -36,6 +36,12 @@ or the Enum value, or the Enum key, as a string. For example, instead of writing
 we could instead write `allow_comments_mode="HOLD_ALL"`
 or `allow_comments_mode="APPROVED_COMMENTS"`
 
+### Note about cookies.txt format
+The cookies file must be in [Netscape cookies.txt](https://docs.cyotek.com/cyowcopy/current/netscapecookieformat.html) format. See the following browser extensions for exporting cookies in the correct format:
+
+- [Firefox](https://addons.mozilla.org/en-US/firefox/addon/cookies-txt)
+- [Chrome](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+
 ## Upload multiple videos
 ```python
 from youtube_up import Metadata, YTUploaderSession
