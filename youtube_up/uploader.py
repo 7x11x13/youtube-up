@@ -70,16 +70,18 @@ class YTUploaderSession:
     _cookies: FileCookieJar
     _session: requests.Session
 
-    def __init__(self, cookie_jar: FileCookieJar, webdriver_path: Optional[str] = None):
+    def __init__(self, cookie_jar: FileCookieJar, webdriver_path: Optional[str] = None, selenium_timeout: float = 60):
         """Create YTUploaderSession from generic FileCookieJar
 
         Args:
             cookie_jar (FileCookieJar): FileCookieJar. Must have save(), load(),
                 and set_cookie(http.cookiejar.Cookie) methods
             webdriver_path (str, optional): Optional path to geckodriver or chromedriver executable
+            selenium_timeout (float, optional): Timeout to wait for grst request. Defaults to 60 seconds
         """
         self._session_token = ""
         self._webdriver_path = webdriver_path
+        self._selenium_timeout = selenium_timeout
 
         # load cookies and init session
         self._cookies = cookie_jar
@@ -97,15 +99,16 @@ class YTUploaderSession:
         }
 
     @classmethod
-    def from_cookies_txt(cls, cookies_txt_path: str, webdriver_path: Optional[str] = None):
+    def from_cookies_txt(cls, cookies_txt_path: str, webdriver_path: Optional[str] = None, selenium_timeout: float = 60):
         """Create YTUploaderSession from cookies.txt file
 
         Args:
             cookies_txt_path (str): Path to Netscape cookies format file
             webdriver_path (str, optional): Optional path to geckodriver or chromedriver executable
+            selenium_timeout (float, optional): Timeout to wait for grst request. Defaults to 60 seconds
         """
         cj = MozillaCookieJar(cookies_txt_path)
-        return cls(cj, webdriver_path)
+        return cls(cj, webdriver_path, selenium_timeout)
 
     def upload(
         self,
@@ -258,7 +261,7 @@ class YTUploaderSession:
                 "Could not log in to YouTube account. Try getting new cookies"
             )
 
-        r = driver.wait_for_request("studio.youtube.com/youtubei/v1/ars/grst")
+        r = driver.wait_for_request("studio.youtube.com/youtubei/v1/ars/grst", timeout=self._selenium_timeout)
         response = r.response
         r_json = json.loads(
             decode(response.body, response.headers.get("Content-Encoding"))
