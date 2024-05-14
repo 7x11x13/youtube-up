@@ -246,6 +246,8 @@ class YTUploaderSession:
                 raise YTUploaderException(
                     "Could not launch Firefox or Chrome. Make sure geckodriver or chromedriver is installed"
                 )
+        
+        driver.set_page_load_timeout(self._selenium_timeout)
 
         driver.get("https://youtube.com")
 
