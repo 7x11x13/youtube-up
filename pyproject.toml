@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "youtube-up"
-version = "0.4.1"
+version = "0.4.2"
 description = "Upload videos to YouTube using the internal YouTube API"
 authors = ["7x11x13 <x7x11x13@gmail.com>"]
 readme = "README.md"
@@ -15,6 +15,7 @@ selenium-wire = "^5.1.0"
 requests = "^2.31.0"
 dataclasses-json = "^0.6.2"
 tqdm = "^4.66.1"
+blinker = ">= 1.4, < 1.8"
 
 [tool.poetry.scripts]
 youtube-up = "youtube_up.__main__:main"
