@@ -403,9 +403,11 @@ class Metadata:
     scheduled_upload: Optional[datetime.datetime] = field(
         default=None,
         metadata=config(
-            decoder=lambda x: datetime.datetime.fromisoformat(x) if x is not None else None,
+            decoder=lambda x: (
+                datetime.datetime.fromisoformat(x) if x is not None else None
+            ),
             encoder=lambda x: datetime.datetime.isoformat(x) if x is not None else None,
-            mm_field=mm_field.DateTime("iso", allow_none=True)
+            mm_field=mm_field.DateTime("iso", allow_none=True),
         ),
     )
     """
@@ -460,7 +462,7 @@ class Metadata:
         metadata=config(
             decoder=lambda x: datetime.date.fromisoformat(x) if x is not None else None,
             encoder=lambda x: datetime.date.isoformat(x) if x is not None else None,
-            mm_field=mm_field.Date("iso", allow_none=True)
+            mm_field=mm_field.Date("iso", allow_none=True),
         ),
     )
     """Day, month, and year that video was recorded"""
@@ -470,7 +472,7 @@ class Metadata:
 
     audio_language: Optional[LanguageEnum] = None
     """Language of audio"""
-    
+
     captions_files: Optional[List[CaptionsFile]] = None
     """Path to captions files (.srt)"""
 
@@ -492,38 +494,44 @@ class Metadata:
 
     allow_embedding: Optional[bool] = None
     """Whether to allow embedding on 3rd party sites"""
-    
+
     def validate(self):
         """Raises error if metadata is invalid"""
-        if self.premiere_countdown_duration is not None or self.premiere_theme is not None:
-            if None in (self.premiere_countdown_duration, self.premiere_theme, self.scheduled_upload):
+        if (
+            self.premiere_countdown_duration is not None
+            or self.premiere_theme is not None
+        ):
+            if None in (
+                self.premiere_countdown_duration,
+                self.premiere_theme,
+                self.scheduled_upload,
+            ):
                 raise ValueError(
                     "If trying to upload a premiere, premiere_countdown_duration, "
                     "premiere_theme, and scheduled_upload must be set"
                 )
-        
+
         if self.captions_files is not None:
             for caption_file in self.captions_files:
                 if caption_file.language is None and self.audio_language is None:
                     raise ValueError(
                         "Must either specify captions file language or audio_language"
                     )
-        
+
         if self.restricted_to_over_18 and self.made_for_kids:
             raise ValueError(
                 "Video cannot be made for kids and also restricted to over 18"
             )
-        
+
         if len(self.title) > 100:
             raise ValueError("Title must be at most 100 characters long")
-        
+
         if len(self.description) > 5000:
             raise ValueError("Description must be at most 5000 characters long")
-        
+
         if any(c in s for c in "<>" for s in (self.title, self.description)):
             raise ValueError("Title and description cannot contain angled brackets")
-        
-        
+
         errors = self.schema().validate(self.to_dict())
         if errors:
             raise ValueError(f"{errors}")

@@ -50,7 +50,8 @@ class BooleanOptionalAction(argparse.Action):
 
     def format_usage(self):
         return " | ".join(self.option_strings)
-    
+
+
 # In python < 3.10, MozillaCookieJar ignores
 # cookie lines starting with #HttpOnly_
 # https://github.com/python/cpython/issues/46443
@@ -58,14 +59,17 @@ class BooleanOptionalAction(argparse.Action):
 HTTPONLY_ATTR = "HTTPOnly"
 HTTPONLY_PREFIX = "#HttpOnly_"
 NETSCAPE_MAGIC_RGX = re.compile("#( Netscape)? HTTP Cookie File")
-MISSING_FILENAME_TEXT = ("a filename was not supplied (nor was the CookieJar "
-                         "instance initialised with one)")
-NETSCAPE_HEADER_TEXT =  """\
+MISSING_FILENAME_TEXT = (
+    "a filename was not supplied (nor was the CookieJar "
+    "instance initialised with one)"
+)
+NETSCAPE_HEADER_TEXT = """\
 # Netscape HTTP Cookie File
 # http://curl.haxx.se/rfc/cookie_spec.html
 # This is a generated file!  Do not edit.
 
 """
+
 
 class MozillaCookieJar(cj.FileCookieJar):
     def _really_load(self, f, filename, ignore_discard, ignore_expires):
@@ -73,33 +77,35 @@ class MozillaCookieJar(cj.FileCookieJar):
 
         if not NETSCAPE_MAGIC_RGX.match(f.readline()):
             raise cj.LoadError(
-                "%r does not look like a Netscape format cookies file" %
-                filename)
+                "%r does not look like a Netscape format cookies file" % filename
+            )
 
         try:
             while 1:
                 line = f.readline()
                 rest = {}
 
-                if line == "": break
+                if line == "":
+                    break
 
                 # httponly is a cookie flag as defined in rfc6265
                 # when encoded in a netscape cookie file,
                 # the line is prepended with "#HttpOnly_"
                 if line.startswith(HTTPONLY_PREFIX):
                     rest[HTTPONLY_ATTR] = ""
-                    line = line[len(HTTPONLY_PREFIX):]
+                    line = line[len(HTTPONLY_PREFIX) :]
 
-                if line.endswith("\n"): line = line[:-1]
+                if line.endswith("\n"):
+                    line = line[:-1]
 
-                if (line.strip().startswith(("#", "$")) or
-                    line.strip() == ""):
+                if line.strip().startswith(("#", "$")) or line.strip() == "":
                     continue
 
-                domain, domain_specified, path, secure, expires, name, value = \
-                        line.split("\t")
-                secure = (secure == "TRUE")
-                domain_specified = (domain_specified == "TRUE")
+                domain, domain_specified, path, secure, expires, name, value = (
+                    line.split("\t")
+                )
+                secure = secure == "TRUE"
+                domain_specified = domain_specified == "TRUE"
                 if name == "":
                     name = value
                     value = None
@@ -111,17 +117,25 @@ class MozillaCookieJar(cj.FileCookieJar):
                 if expires == "":
                     expires = None
                     discard = True
-                    
-                c = cj.Cookie(0, name, value,
-                           None, False,
-                           domain, domain_specified, initial_dot,
-                           path, False,
-                           secure,
-                           expires,
-                           discard,
-                           None,
-                           None,
-                           rest)
+
+                c = cj.Cookie(
+                    0,
+                    name,
+                    value,
+                    None,
+                    False,
+                    domain,
+                    domain_specified,
+                    initial_dot,
+                    path,
+                    False,
+                    secure,
+                    expires,
+                    discard,
+                    None,
+                    None,
+                    rest,
+                )
                 if not ignore_discard and c.discard:
                     continue
                 if not ignore_expires and c.is_expired(now):
@@ -132,13 +146,16 @@ class MozillaCookieJar(cj.FileCookieJar):
             raise
         except Exception:
             cj._warn_unhandled_exception()
-            raise cj.LoadError("invalid Netscape format cookies file %r: %r" %
-                            (filename, line))
+            raise cj.LoadError(
+                "invalid Netscape format cookies file %r: %r" % (filename, line)
+            )
 
     def save(self, filename=None, ignore_discard=False, ignore_expires=False):
         if filename is None:
-            if self.filename is not None: filename = self.filename
-            else: raise ValueError(cj.MISSING_FILENAME_TEXT)
+            if self.filename is not None:
+                filename = self.filename
+            else:
+                raise ValueError(cj.MISSING_FILENAME_TEXT)
 
         with open(filename, "w") as f:
             f.write(NETSCAPE_HEADER_TEXT)
@@ -149,10 +166,14 @@ class MozillaCookieJar(cj.FileCookieJar):
                     continue
                 if not ignore_expires and cookie.is_expired(now):
                     continue
-                if cookie.secure: secure = "TRUE"
-                else: secure = "FALSE"
-                if domain.startswith("."): initial_dot = "TRUE"
-                else: initial_dot = "FALSE"
+                if cookie.secure:
+                    secure = "TRUE"
+                else:
+                    secure = "FALSE"
+                if domain.startswith("."):
+                    initial_dot = "TRUE"
+                else:
+                    initial_dot = "FALSE"
                 if cookie.expires is not None:
                     expires = str(cookie.expires)
                 else:
@@ -166,6 +187,8 @@ class MozillaCookieJar(cj.FileCookieJar):
                 if cookie.has_nonstandard_attr(HTTPONLY_ATTR):
                     domain = HTTPONLY_PREFIX + domain
                 f.write(
-                    "\t".join([domain, initial_dot, cookie.path,
-                               secure, expires, name, value])+
-                    "\n")
+                    "\t".join(
+                        [domain, initial_dot, cookie.path, secure, expires, name, value]
+                    )
+                    + "\n"
+                )

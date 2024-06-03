@@ -11,6 +11,7 @@ try:
 except ImportError:
     from .polyfills import BooleanOptionalAction
 
+
 def main():
     parser = argparse.ArgumentParser(
         prog="youtube-up",
@@ -39,7 +40,9 @@ def main():
     video_parser.add_argument(
         "--description", help="Description. Max length 5000", default=""
     )
-    video_parser.add_argument("--privacy", help="Privacy", type=PrivacyEnum, default=PrivacyEnum.PRIVATE)
+    video_parser.add_argument(
+        "--privacy", help="Privacy", type=PrivacyEnum, default=PrivacyEnum.PRIVATE
+    )
     video_parser.add_argument(
         "--made_for_kids",
         help="Made for kids. If true comments will be disabled",
@@ -121,7 +124,7 @@ def main():
     video_parser.add_argument(
         "--captions_file",
         help="Path to captions file (.srt) with language audio_language",
-        type=CaptionsFile
+        type=CaptionsFile,
     )
     video_parser.add_argument(
         "--license",
@@ -168,8 +171,11 @@ def main():
                     pbar.n = 100 * i + prog
                     pbar.update()
 
-                uploader.upload(
+                video_id = uploader.upload(
                     video["file"], Metadata.from_dict(video["metadata"]), callback
+                )
+                tqdm.tqdm.write(
+                    f"Uploaded video: https://youtube.com/watch?v={video_id}"
                 )
     else:
         args_dict = vars(args)
@@ -188,7 +194,8 @@ def main():
                 pbar.n = prog
                 pbar.update()
 
-            uploader.upload(video_file, metadata, callback)
+            video_id = uploader.upload(video_file, metadata, callback)
+            tqdm.tqdm.write(f"Uploaded video: https://youtube.com/watch?v={video_id}")
 
 
 if __name__ == "__main__":

@@ -26,8 +26,6 @@ try:
     from http.cookiejar import HTTPONLY_ATTR, MozillaCookieJar
 except ImportError:
     from .polyfills import HTTPONLY_ATTR, MozillaCookieJar
-    
-    
 
 
 class YTUploaderException(Exception):
@@ -65,12 +63,27 @@ class YTUploaderSession:
         "upload_thumbnail": 95,
         "finish": 100,
     }
+    _cookie_whitelist = {
+        "LOGIN_INFO",
+        "__Secure-1PSID",
+        "__Secure-3PSID",
+        "__Secure-1PAPISID",
+        "__Secure-3PAPISID",
+        "__Secure-1PSIDTS",
+        "__Secure-3PSIDTS",
+        "SAPISID",
+    }
 
     _session_token: str
     _cookies: FileCookieJar
     _session: requests.Session
 
-    def __init__(self, cookie_jar: FileCookieJar, webdriver_path: Optional[str] = None, selenium_timeout: float = 60):
+    def __init__(
+        self,
+        cookie_jar: FileCookieJar,
+        webdriver_path: Optional[str] = None,
+        selenium_timeout: float = 60,
+    ):
         """Create YTUploaderSession from generic FileCookieJar
 
         Args:
@@ -90,7 +103,7 @@ class YTUploaderSession:
         for cookie in self._cookies:
             if cookie.name == "SESSION_TOKEN":
                 self._session_token = cookie.value
-            else:
+            elif cookie.name in self._cookie_whitelist:
                 self._session.cookies.set_cookie(copy.copy(cookie))
         self._session.headers = {
             "Authorization": f"SAPISIDHASH {self._generateSAPISIDHASH(self._session.cookies['SAPISID'])}",
@@ -99,7 +112,12 @@ class YTUploaderSession:
         }
 
     @classmethod
-    def from_cookies_txt(cls, cookies_txt_path: str, webdriver_path: Optional[str] = None, selenium_timeout: float = 60):
+    def from_cookies_txt(
+        cls,
+        cookies_txt_path: str,
+        webdriver_path: Optional[str] = None,
+        selenium_timeout: float = 60,
+    ):
         """Create YTUploaderSession from cookies.txt file
 
         Args:
@@ -124,7 +142,7 @@ class YTUploaderSession:
             progress_callback (Callable[[str, float], None], optional): Optional progress callback.
                 Callback receives what step uploader is on and what the total percentage of the upload
                 progress is (defined by YTUploaderSession._progress_steps).
-        
+
         Returns:
             str: ID of video uploaded
         """
@@ -142,20 +160,18 @@ class YTUploaderSession:
             url, file_path, progress_callback, "get_upload_url", "upload_video"
         )
         progress_callback("upload_video", self._progress_steps["upload_video"])
-        try:
+        data.encrypted_video_id = self._create_video(scotty_resource_id, metadata, data)
+        if data.encrypted_video_id is None:
+            # could be bad session token, try to get new one
+            self._get_session_token()
+            progress_callback(
+                "get_session_token", self._progress_steps["get_session_token"]
+            )
             data.encrypted_video_id = self._create_video(
                 scotty_resource_id, metadata, data
             )
-        except requests.HTTPError as ex:
-            if ex.response.status_code == 400:
-                # could be bad session token, try to get new one
-                self._get_session_token()
-                progress_callback(
-                    "get_session_token", self._progress_steps["get_session_token"]
-                )
-                data.encrypted_video_id = self._create_video(
-                    scotty_resource_id, metadata, data
-                )
+            if data.encrypted_video_id is None:
+                raise YTUploaderException("Could not create video")
         progress_callback("create_video", self._progress_steps["create_video"])
 
         # set thumbnail
@@ -189,11 +205,8 @@ class YTUploaderSession:
             for caption_file in metadata.captions_files:
                 if caption_file.language is None:
                     caption_file.language = metadata.audio_language
-                self._update_captions(
-                    caption_file,
-                    data
-                )
-            
+                self._update_captions(caption_file, data)
+
         self._update_metadata(metadata, data)
         # save cookies
         for cookie in self._session.cookies:
@@ -246,13 +259,13 @@ class YTUploaderSession:
                 raise YTUploaderException(
                     "Could not launch Firefox or Chrome. Make sure geckodriver or chromedriver is installed"
                 )
-        
+
         driver.set_page_load_timeout(self._selenium_timeout)
 
         driver.get("https://youtube.com")
 
         for cookie in self._cookies:
-            if cookie.name != "SESSION_TOKEN":
+            if cookie.name in self._cookie_whitelist:
                 driver.add_cookie(cookie.__dict__)
 
         driver.get("https://youtube.com/upload")
@@ -263,7 +276,9 @@ class YTUploaderSession:
                 "Could not log in to YouTube account. Try getting new cookies"
             )
 
-        r = driver.wait_for_request("studio.youtube.com/youtubei/v1/ars/grst", timeout=self._selenium_timeout)
+        r = driver.wait_for_request(
+            "studio.youtube.com/youtubei/v1/ars/grst", timeout=self._selenium_timeout
+        )
         response = r.response
         r_json = json.loads(
             decode(response.body, response.headers.get("Content-Encoding"))
@@ -350,9 +365,7 @@ class YTUploaderSession:
     def _get_creator_playlists(self, data: YTUploaderVideoData) -> Dict[str, str]:
         params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestListPlaylists.from_session_data(
-            data.channel_id,
-            self._session_token,
-            data.delegated_session_id
+            data.channel_id, self._session_token, data.delegated_session_id
         ).to_dict()
         r = self._session.post(
             "https://studio.youtube.com/youtubei/v1/creator/list_creator_playlists",
@@ -389,7 +402,9 @@ class YTUploaderSession:
     ):
         params = {"key": data.innertube_api_key, "alt": "json"}
         with open(caption_file.path, "rb") as f:
-            captions_b64 = "data:application/octet-stream;base64," + base64.b64encode(f.read()).decode("utf-8")
+            captions_b64 = "data:application/octet-stream;base64," + base64.b64encode(
+                f.read()
+            ).decode("utf-8")
         timestamp = str(time.time_ns())
         data = APIRequestUpdateCaptions.from_session_data(
             data.channel_id,
@@ -399,7 +414,7 @@ class YTUploaderSession:
             caption_file.path,
             captions_b64,
             caption_file.language,
-            timestamp
+            timestamp,
         ).to_dict()
         r = self._session.post(
             "https://studio.youtube.com/youtubei/v1/globalization/update_captions",
@@ -444,7 +459,7 @@ class YTUploaderSession:
 
     def _create_video(
         self, scotty_resource_id: str, metadata: Metadata, data: YTUploaderVideoData
-    ) -> str:
+    ) -> Optional[str]:
         params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestCreateVideo.from_session_data(
             data.channel_id,
@@ -461,11 +476,7 @@ class YTUploaderSession:
         )
         r.raise_for_status()
         r = r.json()
-        if "videoId" not in r:
-            raise YTUploaderException(
-                f"Could not upload. Daily limit may have been reached. Response: {r}"
-            )
-        return r["videoId"]
+        return r.get("videoId")
 
     def _update_metadata(self, metadata: Metadata, data: YTUploaderVideoData):
         params = {"key": data.innertube_api_key, "alt": "json"}
@@ -487,22 +498,3 @@ class YTUploaderSession:
 
 
 __all__ = ["YTUploaderSession", "YTUploaderException"]
-
-if __name__ == "__main__":
-    uploader = YTUploaderSession.from_cookies_txt("test/cookies.txt")
-    file_path = "test/short.webm"
-    metadata = Metadata(
-        "test title not short",
-        "test description",
-        PrivacyEnum.UNLISTED,
-        tags=["Music", "test tag lol"],
-        allow_comments=False,
-        thumbnail="test/thumb.jpg",
-    )
-    with tqdm.tqdm(total=100) as pbar:
-
-        def callback(step: str, prog: int):
-            pbar.n = prog
-            pbar.update()
-
-        uploader.upload(file_path, metadata, callback)
