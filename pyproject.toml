@@ -9,13 +9,12 @@ documentation = "https://7x11x13.xyz/youtube-up/youtube_up"
 keywords = ["YouTube", "upload"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.10"
 selenium = "^4.11.2"
-selenium-wire = "^5.1.0"
-requests = "^2.31.0"
+selenium-wire-2 = "^0.1.0"
+requests = "^2.32.3"
 dataclasses-json = "^0.6.2"
 tqdm = "^4.66.1"
-blinker = ">= 1.4, < 1.8"
 
 [tool.poetry.scripts]
 youtube-up = "youtube_up.__main__:main"

@@ -11,11 +11,10 @@ from http.cookiejar import Cookie, FileCookieJar
 from typing import Callable, Dict
 
 import requests
-import tqdm
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.firefox.service import Service as FirefoxService
-from seleniumwire import webdriver
-from seleniumwire.utils import decode
+from seleniumwire2 import webdriver
+from seleniumwire2.utils import decode
 from tqdm.utils import CallbackIOWrapper
 
 from .metadata import *
@@ -262,7 +261,13 @@ class YTUploaderSession:
 
         driver.set_page_load_timeout(self._selenium_timeout)
 
-        driver.get("https://youtube.com")
+        try:
+            driver.get("https://youtube.com")
+        except Exception:
+            cert_path = os.path.join(driver.backend.storage.home_dir, "mitmproxy-ca-cert.cer")
+            raise YTUploaderException(
+                f"Was not able to load https://youtube.com. Have you installed the certificate at {cert_path} ? See https://docs.mitmproxy.org/stable/concepts-certificates/#installing-the-mitmproxy-ca-certificate-manually"
+            )
 
         for cookie in self._cookies:
             if cookie.name in self._cookie_whitelist:
