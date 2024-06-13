@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "youtube-up"
-version = "0.4.3"
+version = "0.5.0"
 description = "Upload videos to YouTube using the internal YouTube API"
 authors = ["7x11x13 <x7x11x13@gmail.com>"]
 readme = "README.md"

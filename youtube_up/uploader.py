@@ -21,10 +21,7 @@ from .metadata import *
 from .metadata import CaptionsFile
 from .schema import *
 
-try:
-    from http.cookiejar import HTTPONLY_ATTR, MozillaCookieJar
-except ImportError:
-    from .polyfills import HTTPONLY_ATTR, MozillaCookieJar
+from http.cookiejar import MozillaCookieJar
 
 
 class YTUploaderException(Exception):
