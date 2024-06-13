@@ -7,7 +7,7 @@ import re
 import time
 import uuid
 from hashlib import sha1
-from http.cookiejar import Cookie, FileCookieJar
+from http.cookiejar import Cookie, FileCookieJar, MozillaCookieJar
 from typing import Callable, Dict
 
 import requests
@@ -20,8 +20,6 @@ from tqdm.utils import CallbackIOWrapper
 from .metadata import *
 from .metadata import CaptionsFile
 from .schema import *
-
-from http.cookiejar import MozillaCookieJar
 
 
 class YTUploaderException(Exception):
