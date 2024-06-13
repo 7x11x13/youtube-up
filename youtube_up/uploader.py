@@ -264,7 +264,9 @@ class YTUploaderSession:
         try:
             driver.get("https://youtube.com")
         except Exception:
-            cert_path = os.path.join(driver.backend.storage.home_dir, "mitmproxy-ca-cert.cer")
+            cert_path = os.path.join(
+                driver.backend.storage.home_dir, "mitmproxy-ca-cert.cer"
+            )
             raise YTUploaderException(
                 f"Was not able to load https://youtube.com. Have you installed the certificate at {cert_path} ? See https://docs.mitmproxy.org/stable/concepts-certificates/#installing-the-mitmproxy-ca-certificate-manually"
             )
