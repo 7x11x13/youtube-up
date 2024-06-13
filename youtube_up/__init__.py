@@ -3,6 +3,12 @@
 
 `pip install youtube-up`
 
+## Installing certificates
+
+On your first run you may get an error which says `Was not able to load https://youtube.com. Have you installed the certificate at {cert_path} ?`.
+If this happens you should follow the instructions at https://docs.mitmproxy.org/stable/concepts-certificates/#installing-the-mitmproxy-ca-certificate-manually
+to install the certificate at the given path.
+
 # Examples
 
 ## Upload a video
