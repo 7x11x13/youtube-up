@@ -1,6 +1,6 @@
 # youtube-up
 
-Upload videos to YouTube using the internal YouTube API.
+Upload videos to YouTube using the internal YouTube API. Does not require an API key.
 
 # Installation
 
