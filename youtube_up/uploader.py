@@ -6,9 +6,10 @@ import os
 import re
 import time
 import uuid
+from dataclasses import dataclass
 from hashlib import sha1
 from http.cookiejar import Cookie, FileCookieJar, MozillaCookieJar
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 import requests
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -18,7 +19,6 @@ from seleniumwire2.utils import decode
 from tqdm.utils import CallbackIOWrapper
 
 from .metadata import *
-from .metadata import CaptionsFile
 from .schema import *
 
 
@@ -92,18 +92,22 @@ class YTUploaderSession:
 
         # load cookies and init session
         self._cookies = cookie_jar
-        self._cookies.load(ignore_discard=True, ignore_expires=True)
         self._session = requests.Session()
-        for cookie in self._cookies:
-            if cookie.name == "SESSION_TOKEN":
-                self._session_token = cookie.value
-            elif cookie.name in self._cookie_whitelist:
-                self._session.cookies.set_cookie(copy.copy(cookie))
+        self._reload_cookies()
         self._session.headers = {
             "Authorization": f"SAPISIDHASH {self._generateSAPISIDHASH(self._session.cookies['SAPISID'])}",
             "x-origin": "https://studio.youtube.com",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
         }
+
+    def _reload_cookies(self):
+        self._cookies.load(ignore_discard=True, ignore_expires=True)
+        self._session.cookies.clear()
+        for cookie in self._cookies:
+            if cookie.name == "SESSION_TOKEN":
+                self._session_token = cookie.value
+            elif cookie.name in self._cookie_whitelist:
+                self._session.cookies.set_cookie(copy.copy(cookie))
 
     @classmethod
     def from_cookies_txt(
@@ -266,6 +270,7 @@ class YTUploaderSession:
                 f"Was not able to load https://youtube.com. Have you installed the certificate at {cert_path} ? See https://docs.mitmproxy.org/stable/concepts-certificates/#installing-the-mitmproxy-ca-certificate-manually"
             )
 
+        self._reload_cookies()
         for cookie in self._cookies:
             if cookie.name in self._cookie_whitelist:
                 driver.add_cookie(cookie.__dict__)
