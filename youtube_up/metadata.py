@@ -529,8 +529,15 @@ class Metadata:
         if len(self.description) > 5000:
             raise ValueError("Description must be at most 5000 characters long")
 
-        if any(c in s for c in "<>" for s in (self.title, self.description)):
-            raise ValueError("Title and description cannot contain angled brackets")
+        to_check = [self.title, self.description] + list(self.tags)
+        if self.playlists:
+            for p in self.playlists:
+                to_check += [p.title, p.description]
+
+        if any(c in s for c in "<>" for s in to_check):
+            raise ValueError(
+                "Titles, descriptions, and tags cannot contain angled brackets"
+            )
 
         errors = self.schema().validate(self.to_dict())
         if errors:
