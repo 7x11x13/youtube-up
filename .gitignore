@@ -5,3 +5,5 @@ todo
 .python-version
 __pycache__
 geckodriver.log
+.mypy_cache
+.ruff_cache

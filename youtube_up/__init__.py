@@ -1,3 +1,4 @@
+# ruff: noqa
 """
 # Installation
 
@@ -127,6 +128,8 @@ to upload these videos.
 """
 
 from .metadata import *
+from .metadata import __all__ as m_all
 from .uploader import *
+from .uploader import __all__ as u_all
 
-__all__ = uploader.__all__ + metadata.__all__
+__all__ = u_all + m_all

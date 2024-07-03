@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "youtube-up"
-version = "0.5.2"
+version = "0.5.3"
 description = "Upload videos to YouTube using the internal YouTube API. Does not require an API key."
 authors = ["7x11x13 <x7x11x13@gmail.com>"]
 readme = "README.md"
@@ -11,7 +11,7 @@ keywords = ["YouTube", "upload"]
 [tool.poetry.dependencies]
 python = "^3.10"
 selenium = "^4.11.2"
-selenium-wire-2 = "^0.1.0"
+selenium-wire-2 = "^0.2.1"
 requests = "^2.32.3"
 dataclasses-json = "^0.6.2"
 tqdm = "^4.66.1"
@@ -24,6 +24,15 @@ optional = true
 
 [tool.poetry.group.docs.dependencies]
 pdoc = { version = "^14.1.0", python = "^3.8" }
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.5.0"
+mypy = "^1.10.1"
+types-tqdm = "^4.66.0.20240417"
+types-requests = "^2.32.0.20240622"
 
 [build-system]
 requires = ["poetry-core"]

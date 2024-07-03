@@ -1,15 +1,22 @@
 import argparse
 import json
+from argparse import BooleanOptionalAction
 
 import tqdm
 
-from .metadata import *
-from .uploader import YTUploaderSession
+from youtube_up.metadata import (
+    AllowCommentsEnum,
+    CaptionsFile,
+    CategoryEnum,
+    CommentsSortOrderEnum,
+    LicenseEnum,
+    Metadata,
+    PremiereDurationEnum,
+    PremiereThemeEnum,
+    PrivacyEnum,
+)
 
-try:
-    from argparse import BooleanOptionalAction
-except ImportError:
-    from .polyfills import BooleanOptionalAction
+from .uploader import YTUploaderSession
 
 
 def main():
@@ -199,4 +206,10 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
+    main()
+
+
+if __name__ == "__main__":
+    main()
     main()

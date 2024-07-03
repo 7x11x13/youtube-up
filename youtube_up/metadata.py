@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 import marshmallow.fields as mm_field
 from dataclasses_json import config, dataclass_json
@@ -396,7 +396,7 @@ class Metadata:
     made_for_kids: bool = False
     """Made for kids. If true comments will be disabled"""
 
-    tags: List[str] = ()
+    tags: tuple[str, ...] = ()
     """List of tags"""
 
     # optional metadata for update_metadata
@@ -425,10 +425,10 @@ class Metadata:
     CINEMATIC, CONTEMPORARY, DRAMATIC, FUNKY, GENTLE, HAPPY, INSPIRATIONAL, KIDS, SCI_FI, SPORTS
     """
 
-    playlist_ids: Optional[List[str]] = None
+    playlist_ids: Optional[list[str]] = None
     """List of existing playlist IDs to add video to"""
 
-    playlists: Optional[List[Playlist]] = None
+    playlists: Optional[list[Playlist]] = None
     """List of playlists to create and/or add video to"""
 
     thumbnail: Optional[str] = None
@@ -473,7 +473,7 @@ class Metadata:
     audio_language: Optional[LanguageEnum] = None
     """Language of audio"""
 
-    captions_files: Optional[List[CaptionsFile]] = None
+    captions_files: Optional[list[CaptionsFile]] = None
     """Path to captions files (.srt)"""
 
     license: Optional[LicenseEnum] = None

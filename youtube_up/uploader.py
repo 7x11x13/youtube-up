@@ -18,8 +18,14 @@ from seleniumwire2 import webdriver
 from seleniumwire2.utils import decode
 from tqdm.utils import CallbackIOWrapper
 
-from .metadata import *
-from .schema import *
+from youtube_up.metadata import CaptionsFile, Metadata, Playlist, ThumbnailFormatEnum
+from youtube_up.schema import (
+    APIRequestCreatePlaylist,
+    APIRequestCreateVideo,
+    APIRequestListPlaylists,
+    APIRequestUpdateCaptions,
+    APIRequestUpdateMetadata,
+)
 
 
 class YTUploaderException(Exception):
@@ -28,14 +34,14 @@ class YTUploaderException(Exception):
 
 @dataclass
 class YTUploaderVideoData:
-    authuser: str = None
-    channel_id: str = None
-    innertube_api_key: str = None
-    delegated_session_id: str = None
-    front_end_upload_id: str = None
-    encrypted_video_id: str = None
-    thumbnail_scotty_id: str = None
-    thumbnail_format: str = None
+    authuser: str = ""
+    channel_id: str = ""
+    innertube_api_key: str = ""
+    delegated_session_id: str = ""
+    front_end_upload_id: str = ""
+    encrypted_video_id: str = ""
+    thumbnail_scotty_id: str = ""
+    thumbnail_format: str = ""
 
 
 class YTUploaderSession:
@@ -158,18 +164,17 @@ class YTUploaderSession:
             url, file_path, progress_callback, "get_upload_url", "upload_video"
         )
         progress_callback("upload_video", self._progress_steps["upload_video"])
-        data.encrypted_video_id = self._create_video(scotty_resource_id, metadata, data)
-        if data.encrypted_video_id is None:
+        encrypted_video_id = self._create_video(scotty_resource_id, metadata, data)
+        if encrypted_video_id is None:
             # could be bad session token, try to get new one
             self._get_session_token()
             progress_callback(
                 "get_session_token", self._progress_steps["get_session_token"]
             )
-            data.encrypted_video_id = self._create_video(
-                scotty_resource_id, metadata, data
-            )
-            if data.encrypted_video_id is None:
+            encrypted_video_id = self._create_video(scotty_resource_id, metadata, data)
+            if encrypted_video_id is None:
                 raise YTUploaderException("Could not create video")
+        data.encrypted_video_id = encrypted_video_id
         progress_callback("create_video", self._progress_steps["create_video"])
 
         # set thumbnail
@@ -333,11 +338,11 @@ class YTUploaderSession:
                 "Could not log in to YouTube account. Try getting new cookies"
             )
 
-        data.channel_id = self._channel_id_regex.match(r.url).group(1)
-        data.innertube_api_key = self._innertube_api_key_regex.search(r.text).group(1)
+        data.channel_id = self._channel_id_regex.match(r.url).group(1)  # type: ignore[union-attr]
+        data.innertube_api_key = self._innertube_api_key_regex.search(r.text).group(1)  # type: ignore[union-attr]
         m = self._delegated_session_id_regex.search(r.text)
-        data.delegated_session_id = m and m.group(1)
-        data.authuser = self._session_index_regex.search(r.text).group(1)
+        data.delegated_session_id = m and m.group(1)  # type: ignore[assignment]
+        data.authuser = self._session_index_regex.search(r.text).group(1)  # type: ignore[union-attr]
         self._session.headers["X-Goog-AuthUser"] = data.authuser
 
     def _get_upload_url(self, api_url: str, authuser: str, data: dict) -> str:
@@ -413,6 +418,7 @@ class YTUploaderSession:
                 f.read()
             ).decode("utf-8")
         timestamp = str(time.time_ns())
+        assert caption_file.language is not None
         data = APIRequestUpdateCaptions.from_session_data(
             data.channel_id,
             self._session_token,
@@ -437,7 +443,7 @@ class YTUploaderSession:
         progress_callback: Callable[[str, float], None],
         prev_progress_step: str,
         cur_progress_step: str,
-    ):
+    ) -> str:
         headers = {
             "x-goog-upload-command": "upload, finalize",
             "x-goog-upload-offset": "0",
@@ -482,8 +488,7 @@ class YTUploaderSession:
             json=data,
         )
         r.raise_for_status()
-        r = r.json()
-        return r.get("videoId")
+        return r.json().get("videoId")
 
     def _update_metadata(self, metadata: Metadata, data: YTUploaderVideoData):
         params = {"key": data.innertube_api_key, "alt": "json"}
