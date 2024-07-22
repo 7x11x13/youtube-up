@@ -338,11 +338,11 @@ def enum_allow_key__new__(cls, value):
             value = getattr(cls, value)
             return Enum.__new__(cls, value)
         except (AttributeError, TypeError):
-            raise ValueError(f"{cls.__name__} has no key or value '{value}'")
+            raise ValueError(f"{cls.__name__} has no key or value '{value}'") from None
 
 
 for enum_class in enum_classes:
-    setattr(enum_class, "__new__", enum_allow_key__new__)
+    enum_class.__new__ = enum_allow_key__new__  # type: ignore
 
 
 @dataclass_json
@@ -411,18 +411,22 @@ class Metadata:
         ),
     )
     """
-    Date to make upload public. If set, video will be set to private until the date, unless video
-    is a premiere in which case it will be set to public. Video will not be a premiere unless both
-    premiere_countdown_duration and premiere_theme are set
+    Date to make upload public. If set, video will be set to private until the date,
+    unless video is a premiere in which case it will be set to public. Video will not
+    be a premiere unless both premiere_countdown_duration and premiere_theme are set
     """
 
     premiere_countdown_duration: Optional[PremiereDurationEnum] = None
-    """Duration of premiere countdown in seconds. Possible values: 60, 120, 180, 240, 300"""
+    """
+    Duration of premiere countdown in seconds.
+    Possible values: 60, 120, 180, 240, 300
+    """
 
     premiere_theme: Optional[PremiereThemeEnum] = None
     """
-    Theme of premiere countdown. Possible values: CLASSIC, ALTERNATIVE, AMBIENT, BRIGHT, CALM,
-    CINEMATIC, CONTEMPORARY, DRAMATIC, FUNKY, GENTLE, HAPPY, INSPIRATIONAL, KIDS, SCI_FI, SPORTS
+    Theme of premiere countdown.
+    Possible values: CLASSIC, ALTERNATIVE, AMBIENT, BRIGHT, CALM, CINEMATIC,
+    CONTEMPORARY, DRAMATIC, FUNKY, GENTLE, HAPPY, INSPIRATIONAL, KIDS, SCI_FI, SPORTS
     """
 
     playlist_ids: Optional[list[str]] = None
@@ -438,9 +442,12 @@ class Metadata:
     """Whether to notify subscribers"""
 
     category: Optional[CategoryEnum] = None
-    """Category. Category-specific metadata is not supported yet. Possible values: FILM_ANIMATION,
-    AUTOS_VEHICLES, MUSIC, PETS_ANIMALS, SPORTS, TRAVEL_EVENTS, GAMING, PEOPLE_BLOGS, COMEDY,
-    ENTERTAINMENT, NEWS_POLITICS, HOWTO_STYLE, EDUCATION, SCIENCE_TECH, NONPROFITS_ACTIVISM"""
+    """
+    Category. Category-specific metadata is not supported yet.
+    Possible values: FILM_ANIMATION, AUTOS_VEHICLES, MUSIC, PETS_ANIMALS, SPORTS,
+    TRAVEL_EVENTS, GAMING, PEOPLE_BLOGS, COMEDY, ENTERTAINMENT, NEWS_POLITICS,
+    HOWTO_STYLE, EDUCATION, SCIENCE_TECH, NONPROFITS_ACTIVISM
+    """
 
     auto_chapter: Optional[bool] = None
     """Whether to use automatic video chapters"""

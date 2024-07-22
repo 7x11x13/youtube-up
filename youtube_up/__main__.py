@@ -1,6 +1,7 @@
 import argparse
 import json
 from argparse import BooleanOptionalAction
+from functools import partial
 
 import tqdm
 
@@ -59,10 +60,11 @@ def main():
     video_parser.add_argument("--tags", nargs="+", help="List of tags", default=[])
     video_parser.add_argument(
         "--scheduled_upload",
-        help="Date to make upload public, in ISO format (local time, unless timezone is specified)."
-        " If set, video will be set to private until the date, unless video is a premiere in which "
-        "case it will be set to public. Video will not be a premiere unless both "
-        "premiere_countdown_duration and premiere_theme are set",
+        help="Date to make upload public, in ISO format (local time, unless timezone "
+        "is specified). If set, video will be set to private until the date, unless "
+        "video is a premiere in which case it will be set to public. Video will not "
+        "be a premiere unless both premiere_countdown_duration and premiere_theme are "
+        "set",
     )
     video_parser.add_argument(
         "--premiere_countdown_duration",
@@ -174,9 +176,11 @@ def main():
         with tqdm.tqdm(total=100 * len(data)) as pbar:
             for i, video in enumerate(data):
 
-                def callback(step: str, prog: int):
+                def _callback(step: str, prog: int, i: int):
                     pbar.n = 100 * i + prog
                     pbar.update()
+
+                callback = partial(_callback, i=i)
 
                 video_id = uploader.upload(
                     video["file"], Metadata.from_dict(video["metadata"]), callback

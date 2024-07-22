@@ -34,14 +34,14 @@ class YTUploaderException(Exception):
 
 @dataclass
 class YTUploaderVideoData:
-    authuser: str = ""
-    channel_id: str = ""
-    innertube_api_key: str = ""
-    delegated_session_id: str = ""
-    front_end_upload_id: str = ""
-    encrypted_video_id: str = ""
-    thumbnail_scotty_id: str = ""
-    thumbnail_format: str = ""
+    authuser: str
+    channel_id: str
+    innertube_api_key: str
+    delegated_session_id: Optional[str]
+    front_end_upload_id: Optional[str] = None
+    encrypted_video_id: Optional[str] = None
+    thumbnail_scotty_id: Optional[str] = None
+    thumbnail_format: Optional[str] = None
 
 
 class YTUploaderSession:
@@ -89,8 +89,10 @@ class YTUploaderSession:
         Args:
             cookie_jar (FileCookieJar): FileCookieJar. Must have save(), load(),
                 and set_cookie(http.cookiejar.Cookie) methods
-            webdriver_path (str, optional): Optional path to geckodriver or chromedriver executable
-            selenium_timeout (float, optional): Timeout to wait for grst request. Defaults to 60 seconds
+            webdriver_path (str, optional): Optional path to geckodriver or chromedriver
+                executable
+            selenium_timeout (float, optional): Timeout to wait for grst request.
+                Defaults to 60 seconds
         """
         self._session_token = ""
         self._webdriver_path = webdriver_path
@@ -100,10 +102,14 @@ class YTUploaderSession:
         self._cookies = cookie_jar
         self._session = requests.Session()
         self._reload_cookies()
+        hash = self._generateSAPISIDHASH(self._session.cookies["SAPISID"])
         self._session.headers = {
-            "Authorization": f"SAPISIDHASH {self._generateSAPISIDHASH(self._session.cookies['SAPISID'])}",
+            "Authorization": f"SAPISIDHASH {hash}",
             "x-origin": "https://studio.youtube.com",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+            "user-agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) "
+                "Gecko/20100101 Firefox/119.0"
+            ),
         }
 
     def _reload_cookies(self):
@@ -126,8 +132,10 @@ class YTUploaderSession:
 
         Args:
             cookies_txt_path (str): Path to Netscape cookies format file
-            webdriver_path (str, optional): Optional path to geckodriver or chromedriver executable
-            selenium_timeout (float, optional): Timeout to wait for grst request. Defaults to 60 seconds
+            webdriver_path (str, optional): Optional path to geckodriver or chromedriver
+                executable
+            selenium_timeout (float, optional): Timeout to wait for grst request.
+                Defaults to 60 seconds
         """
         cj = MozillaCookieJar(cookies_txt_path)
         return cls(cj, webdriver_path, selenium_timeout)
@@ -143,9 +151,10 @@ class YTUploaderSession:
         Args:
             file_path (str): Path to video file
             metadata (Metadata): Metadata of video to set when uploaded
-            progress_callback (Callable[[str, float], None], optional): Optional progress callback.
-                Callback receives what step uploader is on and what the total percentage of the upload
-                progress is (defined by YTUploaderSession._progress_steps).
+            progress_callback (Callable[[str, float], None], optional): Optional
+                progress callback. Callback receives what step uploader is on and what
+                the total percentage of the upload progress is (defined by
+                YTUploaderSession._progress_steps).
 
         Returns:
             str: ID of video uploaded
@@ -155,8 +164,7 @@ class YTUploaderSession:
         except ValueError as ex:
             raise YTUploaderException(f"Validation error: {ex}") from ex
         progress_callback("start", self._progress_steps["start"])
-        data = YTUploaderVideoData()
-        self._get_session_data(data)
+        data = self._get_session_data()
         progress_callback("get_session_data", self._progress_steps["get_session_data"])
         url = self._get_video_upload_url(data)
         progress_callback("get_upload_url", self._progress_steps["get_upload_url"])
@@ -235,7 +243,8 @@ class YTUploaderSession:
         if ext in ("png",):
             return ThumbnailFormatEnum.PNG
         raise YTUploaderException(
-            f"Unknown format for thumbnail with extension '{ext}'. Only JPEG and PNG allowed"
+            f"Unknown format for thumbnail with extension '{ext}'. "
+            "Only JPEG and PNG allowed"
         )
 
     def _get_session_token(self):
@@ -258,22 +267,25 @@ class YTUploaderSession:
                     driver = webdriver.Chrome(options=options, service=service)
                 else:
                     driver = webdriver.Chrome(options=options)
-            except Exception:
+            except Exception as ex:
                 raise YTUploaderException(
-                    "Could not launch Firefox or Chrome. Make sure geckodriver or chromedriver is installed"
-                )
+                    "Could not launch Firefox or Chrome. Make sure geckodriver or "
+                    "chromedriver is installed"
+                ) from ex
 
         driver.set_page_load_timeout(self._selenium_timeout)
 
         try:
             driver.get("https://youtube.com")
-        except Exception:
+        except Exception as ex:
             cert_path = os.path.join(
                 driver.backend.storage.home_dir, "mitmproxy-ca-cert.cer"
             )
             raise YTUploaderException(
-                f"Was not able to load https://youtube.com. Have you installed the certificate at {cert_path} ? See https://docs.mitmproxy.org/stable/concepts-certificates/#installing-the-mitmproxy-ca-certificate-manually"
-            )
+                "Was not able to load https://youtube.com. Have you installed the cert"
+                f"ificate at {cert_path} ? See https://docs.mitmproxy.org/stable/conce"
+                "pts-certificates/#installing-the-mitmproxy-ca-certificate-manually"
+            ) from ex
 
         self._reload_cookies()
         for cookie in self._cookies:
@@ -330,7 +342,7 @@ class YTUploaderSession:
         hash = sha1(msg.encode("utf-8")).hexdigest()
         return f"{timestamp}_{hash}"
 
-    def _get_session_data(self, data: YTUploaderVideoData):
+    def _get_session_data(self) -> YTUploaderVideoData:
         r = self._session.get("https://youtube.com/upload")
 
         if "studio.youtube.com/channel" not in r.url:
@@ -338,12 +350,18 @@ class YTUploaderSession:
                 "Could not log in to YouTube account. Try getting new cookies"
             )
 
-        data.channel_id = self._channel_id_regex.match(r.url).group(1)  # type: ignore[union-attr]
-        data.innertube_api_key = self._innertube_api_key_regex.search(r.text).group(1)  # type: ignore[union-attr]
+        channel_id = self._channel_id_regex.match(r.url).group(1)  # type: ignore[union-attr]
+        innertube_api_key = self._innertube_api_key_regex.search(r.text).group(1)  # type: ignore[union-attr]
         m = self._delegated_session_id_regex.search(r.text)
-        data.delegated_session_id = m and m.group(1)  # type: ignore[assignment]
-        data.authuser = self._session_index_regex.search(r.text).group(1)  # type: ignore[union-attr]
-        self._session.headers["X-Goog-AuthUser"] = data.authuser
+        delegated_session_id = m and m.group(1)
+        authuser = self._session_index_regex.search(r.text).group(1)  # type: ignore[union-attr]
+        self._session.headers["X-Goog-AuthUser"] = authuser
+        return YTUploaderVideoData(
+            authuser=authuser,
+            channel_id=channel_id,
+            innertube_api_key=innertube_api_key,
+            delegated_session_id=delegated_session_id,
+        )
 
     def _get_upload_url(self, api_url: str, authuser: str, data: dict) -> str:
         params = {"authuser": authuser}
@@ -419,6 +437,7 @@ class YTUploaderSession:
             ).decode("utf-8")
         timestamp = str(time.time_ns())
         assert caption_file.language is not None
+        assert data.encrypted_video_id is not None
         data = APIRequestUpdateCaptions.from_session_data(
             data.channel_id,
             self._session_token,
@@ -473,6 +492,9 @@ class YTUploaderSession:
     def _create_video(
         self, scotty_resource_id: str, metadata: Metadata, data: YTUploaderVideoData
     ) -> Optional[str]:
+        if self._session_token == "":
+            return None
+        assert data.front_end_upload_id is not None
         params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestCreateVideo.from_session_data(
             data.channel_id,
@@ -491,6 +513,7 @@ class YTUploaderSession:
         return r.json().get("videoId")
 
     def _update_metadata(self, metadata: Metadata, data: YTUploaderVideoData):
+        assert data.encrypted_video_id is not None
         params = {"key": data.innertube_api_key, "alt": "json"}
         data = APIRequestUpdateMetadata.from_session_data(
             data.channel_id,

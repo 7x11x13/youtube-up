@@ -7,8 +7,8 @@ from dataclasses_json import config, dataclass_json
 from youtube_up.metadata import Metadata, Playlist, PrivacyEnum
 
 
-def _x_is_not_none(x: Optional[Any]):
-    return x is not None
+def _x_is_none(x: Optional[Any]):
+    return x is None
 
 
 @dataclass_json
@@ -59,7 +59,7 @@ class APIDelegationContext:
 class APIUser:
     delegationContext: APIDelegationContext
     onBehalfOfUser: Optional[str] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
 
 
@@ -159,16 +159,16 @@ class APIUpdateMetadataCategory(UpdateMetadataBase):
 class APIUpdateMetadataCommentOptions(UpdateMetadataBase):
     newAllowComments: Optional[bool] = field(
         default=None,
-        metadata=config(exclude=_x_is_not_none),
+        metadata=config(exclude=_x_is_none),
     )
     newAllowCommentsMode: Optional[str] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     newCanViewRatings: Optional[bool] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     newDefaultSortOrder: Optional[str] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
 
 
@@ -240,10 +240,10 @@ class APIUpdateMetadataAutoLearningConcepts(UpdateMetadataBase):
 @dataclass(frozen=True)
 class APIUpdateMetadataProductPlacement(UpdateMetadataBase):
     newHasPaidProductPlacement: Optional[bool] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     newShowPaidProductPlacementOverlay: Optional[bool] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
 
 
@@ -379,7 +379,9 @@ class APIRequestCreateVideo:
             APIDelegationContext(channel_id),
             front_end_upload_id,
             APIInitialMetadata.from_metadata(metadata),
-            False,  # apparently does nothing; will be a short if video meets short requirements regardless
+            # apparently does nothing; will be a short if
+            # video meets short requirements regardless
+            False,
             APIScottyResourceID(APIID(scotty_resource_id)),
         )
 
@@ -538,55 +540,55 @@ class APIRequestUpdateMetadata:
     privacyState: APIUpdateMetadataPrivacy
     # optional updates
     autoChapter: Optional[APIUpdateMetadataAutoChapter] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     autoPlaces: Optional[APIUpdateMetadataAutoPlaces] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     learningConcepts: Optional[APIUpdateMetadataAutoLearningConcepts] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     productPlacement: Optional[APIUpdateMetadataProductPlacement] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     racy: Optional[APIUpdateMetadataRacy] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     audioLanguage: Optional[APIUpdateMetadataAudioLanguage] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     recordedDate: Optional[APIUpdateMetadataRecordedDate] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     category: Optional[APIUpdateMetadataCategory] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     commentOptions: Optional[APIUpdateMetadataCommentOptions] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     distributionOptions: Optional[APIUpdateMetadataDistributionOptions] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     license: Optional[APIUpdateMetadataLicense] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     publishingOptions: Optional[APIUpdateMetadataPublishingOptions] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     videoStill: Optional[APIUpdateMetadataThumbnail] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     addToPlaylist: Optional[APIUpdateMetadataPlaylists] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     scheduledPublishing: Optional[APIUpdateMetadataScheduledPublishing] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     premiere: Optional[APIUpdateMetadataPremiere] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
     premiereIntro: Optional[APIUpdateMetadataPremiereIntro] = field(
-        default=None, metadata=config(exclude=_x_is_not_none)
+        default=None, metadata=config(exclude=_x_is_none)
     )
 
     @classmethod
