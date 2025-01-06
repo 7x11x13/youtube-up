@@ -402,10 +402,15 @@ class APIRequestListPlaylists:
     mask: APIRequestListPlaylistsMask = APIRequestListPlaylistsMask()
     memberVideoIds: tuple[str, ...] = ()
     pageSize: int = 500
+    pageToken: str = ""
 
     @classmethod
     def from_session_data(
-        cls, channel_id: str, session_token: str, delegated_session_id: Optional[str]
+        cls,
+        channel_id: str,
+        session_token: str,
+        delegated_session_id: Optional[str],
+        page_token: str = "",
     ):
         return cls(
             channel_id,
@@ -413,6 +418,93 @@ class APIRequestListPlaylists:
                 channel_id, session_token, delegated_session_id
             ),
             APIDelegationContext(channel_id),
+            pageToken=page_token,
+        )
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIRequestListVideos:
+    channelIds: tuple[str]
+    context: APIContext
+    filter: dict
+    mask: dict = field(default_factory=lambda: {"title": True})
+    order: str = "VIDEO_ORDER_VIEW_COUNT_DESC"
+    pageSize: int = 100
+    pageToken: str = ""
+
+    @classmethod
+    def list_claimed(
+        cls, channel_id: str, delegated_session_id: Optional[str], page_token: str = ""
+    ):
+        return cls(
+            (channel_id,),
+            APIContext.from_session_data(channel_id, "", delegated_session_id),
+            {
+                "and": {
+                    "operands": [
+                        {"channelIdIs": {"value": channel_id}},
+                        {"hasCopyrightClaim": {}},
+                    ]
+                }
+            },
+            pageToken=page_token,
+        )
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIRequestListClaim:
+    context: APIContext
+    videoId: str
+    criticalRead: bool = False
+    includeLicensingOptions: bool = False
+    includeCommunicationEmail: bool = False
+
+    @classmethod
+    def from_session_data(
+        cls, channel_id: str, delegated_session_id: Optional[str], video_id: str
+    ):
+        return cls(
+            APIContext.from_session_data(channel_id, "", delegated_session_id), video_id
+        )
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIClaimID:
+    claimId: str
+    videoId: str
+
+
+@dataclass_json
+@dataclass(frozen=True)
+class APIRequestDispute:
+    context: APIContext
+    claimId: APIClaimID
+    justification: str
+    signature: str
+    fairUseType: str = "FAIR_USE_TYPE_UNKNOWN"
+    claimDisputeReason: str = "CLAIM_DISPUTE_REASON_AUTHORIZED"
+
+    @classmethod
+    def from_session_data(
+        cls,
+        channel_id: str,
+        session_token: str,
+        delegated_session_id: Optional[str],
+        claim_id: str,
+        video_id: str,
+        justification: str,
+        legal_name: str,
+    ):
+        return cls(
+            APIContext.from_session_data(
+                channel_id, session_token, delegated_session_id
+            ),
+            APIClaimID(claim_id, video_id),
+            justification,
+            legal_name,
         )
 
 

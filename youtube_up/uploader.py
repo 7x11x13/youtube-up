@@ -22,7 +22,10 @@ from youtube_up.metadata import CaptionsFile, Metadata, Playlist, ThumbnailForma
 from youtube_up.schema import (
     APIRequestCreatePlaylist,
     APIRequestCreateVideo,
+    APIRequestDispute,
+    APIRequestListClaim,
     APIRequestListPlaylists,
+    APIRequestListVideos,
     APIRequestUpdateCaptions,
     APIRequestUpdateMetadata,
 )
@@ -393,20 +396,100 @@ class YTUploaderSession:
         )
 
     def _get_creator_playlists(self, data: YTUploaderVideoData) -> Dict[str, str]:
-        params = {"key": data.innertube_api_key, "alt": "json"}
-        data = APIRequestListPlaylists.from_session_data(
-            data.channel_id, self._session_token, data.delegated_session_id
+        playlists = {}
+        page_token = ""
+        while True:
+            params = {"key": data.innertube_api_key, "alt": "json"}
+            json = APIRequestListPlaylists.from_session_data(
+                data.channel_id,
+                self._session_token,
+                data.delegated_session_id,
+                page_token,
+            ).to_dict()
+            r = self._session.post(
+                "https://studio.youtube.com/youtubei/v1/creator/list_creator_playlists",
+                params=params,
+                json=json,
+            )
+            r.raise_for_status()
+            json = r.json()
+            playlists.update(
+                {
+                    playlist["title"]: playlist["playlistId"]
+                    for playlist in json.get("playlists", [])
+                }
+            )
+            if json.get("nextPageToken"):
+                page_token = json["nextPageToken"]
+            else:
+                break
+        return playlists
+
+    def _get_claimed_videos(self, data: YTUploaderVideoData) -> Dict[str, str]:
+        videos = []
+        page_token = ""
+        while True:
+            params = {"alt": "json"}
+            json = APIRequestListVideos.list_claimed(
+                data.channel_id,
+                data.delegated_session_id,
+                page_token,
+            ).to_dict()
+            r = self._session.post(
+                "https://studio.youtube.com/youtubei/v1/creator/list_creator_videos",
+                params=params,
+                json=json,
+            )
+            r.raise_for_status()
+            json = r.json()
+            videos += json.get("videos", [])
+            if json.get("nextPageToken"):
+                page_token = json["nextPageToken"]
+            else:
+                break
+        return videos
+
+    def _get_claim_info(self, data: YTUploaderVideoData, video_id: str):
+        params = {"alt": "json"}
+        data = APIRequestListClaim.from_session_data(
+            data.channel_id,
+            data.delegated_session_id,
+            video_id,
         ).to_dict()
         r = self._session.post(
-            "https://studio.youtube.com/youtubei/v1/creator/list_creator_playlists",
+            "https://studio.youtube.com/youtubei/v1/creator/list_creator_received_claims",
             params=params,
             json=data,
         )
         r.raise_for_status()
-        return {
-            playlist["title"]: playlist["playlistId"]
-            for playlist in r.json().get("playlists", [])
-        }
+        data = r.json()
+        return list(zip(data["receivedClaims"], data["contentOwners"]))
+
+    def _dispute_claim(
+        self,
+        data: YTUploaderVideoData,
+        claim_id: str,
+        video_id: str,
+        justification: str,
+        legal_name: str,
+    ):
+        params = {"alt": "json"}
+        data = APIRequestDispute.from_session_data(
+            data.channel_id,
+            self._session_token,
+            data.delegated_session_id,
+            claim_id,
+            video_id,
+            justification,
+            legal_name,
+        ).to_dict()
+        r = self._session.post(
+            "https://studio.youtube.com/youtubei/v1/copyright/submit_claim_dispute",
+            params=params,
+            json=data,
+        )
+        r.raise_for_status()
+        data = r.json()
 
     def _create_playlist(
         self,
