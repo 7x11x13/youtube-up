@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import copy
 import json
@@ -9,7 +11,7 @@ import uuid
 from dataclasses import dataclass
 from hashlib import sha1
 from http.cookiejar import Cookie, FileCookieJar, MozillaCookieJar
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 import requests
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -395,7 +397,7 @@ class YTUploaderSession:
             "https://upload.youtube.com/upload/studiothumbnail", data.authuser, {}
         )
 
-    def _get_creator_playlists(self, data: YTUploaderVideoData) -> Dict[str, str]:
+    def _get_creator_playlists(self, data: YTUploaderVideoData) -> dict[str, str]:
         playlists = {}
         page_token = ""
         while True:
@@ -425,7 +427,7 @@ class YTUploaderSession:
                 break
         return playlists
 
-    def _get_claimed_videos(self, data: YTUploaderVideoData) -> Dict[str, str]:
+    def _get_claimed_videos(self, data: YTUploaderVideoData) -> list[dict]:
         videos = []
         page_token = ""
         while True:
@@ -462,8 +464,8 @@ class YTUploaderSession:
             json=data,
         )
         r.raise_for_status()
-        data = r.json()
-        return list(zip(data["receivedClaims"], data["contentOwners"]))
+        json = r.json()
+        return list(zip(json["receivedClaims"], json["contentOwners"]))
 
     def _dispute_claim(
         self,
